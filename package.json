@@ -1,12 +1,31 @@
 {
   "name": "camerarent",
   "version": "1.0.0",
-  "main": "index.ts",
+  "main": "expo-router/entry",
   "dependencies": {
+    "@gorhom/bottom-sheet": "^5.2.14",
+    "@supabase/supabase-js": "^2.106.1",
+    "@tanstack/react-query": "^5.100.11",
+    "date-fns": "^4.2.1",
     "expo": "~56.0.3",
+    "expo-constants": "^56.0.14",
+    "expo-image-picker": "^56.0.12",
+    "expo-linking": "^56.0.11",
+    "expo-local-authentication": "^56.0.4",
+    "expo-router": "^56.2.5",
+    "expo-secure-store": "^56.0.4",
     "expo-status-bar": "~56.0.4",
+    "lucide-react-native": "^1.16.0",
+    "nativewind": "^4.2.4",
     "react": "19.2.3",
-    "react-native": "0.85.3"
+    "react-native": "0.85.3",
+    "react-native-calendars": "^1.1314.0",
+    "react-native-gesture-handler": "^2.31.2",
+    "react-native-gifted-charts": "^1.4.77",
+    "react-native-reanimated": "^4.3.1",
+    "react-native-safe-area-context": "^5.8.0",
+    "react-native-screens": "^4.25.2",
+    "tailwindcss": "^3.4.19"
   },
   "devDependencies": {
     "@types/react": "~19.2.2",
