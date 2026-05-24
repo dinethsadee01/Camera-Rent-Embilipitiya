@@ -1,4 +1,5 @@
 import { format, parseISO, differenceInDays } from 'date-fns';
+import type { BookingWithRelations } from '@/lib/types';
 
 export function formatCurrency(amount: number): string {
   return `Rs. ${amount.toLocaleString('en-LK', {
@@ -52,7 +53,7 @@ export function today(): string {
   return toISODateString(new Date());
 }
 
-export function buildBookingReceipt(b: import('@/lib/types').BookingWithRelations): string {
+export function buildBookingReceipt(b: BookingWithRelations): string {
   const days = getRentalDays(b.start_date, b.end_date);
   const primaryItems = (b.booking_items ?? []).filter((bi) => !bi.is_free);
   const freeItems = (b.booking_items ?? []).filter((bi) => bi.is_free);

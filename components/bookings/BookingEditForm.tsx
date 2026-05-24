@@ -77,7 +77,7 @@ export function BookingEditForm({ booking, onSubmit, onCancel }: BookingEditForm
   );
   const [startDate, setStartDate] = useState(() => new Date(booking.start_date + 'T00:00:00'));
   const [endDate, setEndDate] = useState(() => new Date(booking.end_date + 'T00:00:00'));
-  const [paymentOption, setPaymentOption] = useState(booking.payment_status);
+  const [paymentOption, setPaymentOption] = useState<string>(booking.payment_status);
   const [paymentMethod, setPaymentMethod] = useState<PaymentMethod | null>(booking.payment_method);
   const [advanceAmount, setAdvanceAmount] = useState(
     booking.advance_amount > 0 ? String(booking.advance_amount) : ''
