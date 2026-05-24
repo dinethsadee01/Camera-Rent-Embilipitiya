@@ -8,8 +8,11 @@ import type { Item, ItemCategory } from '@/lib/types';
 const CATEGORIES: { key: ItemCategory; label: string }[] = [
   { key: 'camera', label: 'Camera' },
   { key: 'lens', label: 'Lens' },
-  { key: 'accessory', label: 'Accessory' },
+  { key: 'drone', label: 'Drone' },
+  { key: 'stabilizer', label: 'Stabilizer' },
   { key: 'lighting', label: 'Lighting' },
+  { key: 'support', label: 'Support' },
+  { key: 'accessory', label: 'Accessory' },
   { key: 'other', label: 'Other' },
 ];
 

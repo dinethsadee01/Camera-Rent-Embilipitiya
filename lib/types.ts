@@ -1,4 +1,4 @@
-export type ItemCategory = 'camera' | 'lens' | 'accessory' | 'lighting' | 'other';
+export type ItemCategory = 'camera' | 'lens' | 'accessory' | 'lighting' | 'drone' | 'stabilizer' | 'support' | 'other';
 
 export type BookingStatus = 'upcoming' | 'active' | 'completed' | 'cancelled';
 

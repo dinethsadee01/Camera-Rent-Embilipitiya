@@ -5,8 +5,17 @@
     "version": "1.0.0",
     "scheme": "camerarent",
     "orientation": "portrait",
-    "icon": "./assets/icon.png",
+    "icon": "./assets/camerarentapplogo.png",
     "userInterfaceStyle": "automatic",
+    "splash": {
+      "image": "./assets/Logo-black.png",
+      "resizeMode": "contain",
+      "backgroundColor": "#ffffff",
+      "dark": {
+        "image": "./assets/Logo-white.png",
+        "backgroundColor": "#000000"
+      }
+    },
     "plugins": [
       "expo-router",
       "expo-secure-store",

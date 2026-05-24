@@ -1,7 +1,7 @@
-import { View, Text, TouchableOpacity } from 'react-native';
-import { CalendarDays, User, Package, CheckCircle, XCircle, Clock } from 'lucide-react-native';
+import { View, Text, TouchableOpacity, Share } from 'react-native';
+import { CalendarDays, User, Package, CheckCircle, XCircle, Clock, AlertTriangle, Share2 } from 'lucide-react-native';
 import { Badge, statusVariant, statusLabel } from '@/components/ui/Badge';
-import { formatDate, formatCurrency } from '@/lib/utils';
+import { formatDate, formatCurrency, today, buildBookingReceipt } from '@/lib/utils';
 import { useTheme } from '@/hooks/useTheme';
 import type { BookingWithRelations } from '@/lib/types';
 
@@ -18,11 +18,29 @@ export function BookingCard({ booking: b, onMarkPaid, onMarkPending, onCancel, o
   const { isDark } = useTheme();
   const iconColor = isDark ? '#999999' : '#666666';
 
+  async function handleShare() {
+    try {
+      await Share.share({ message: buildBookingReceipt(b) });
+    } catch {}
+  }
+
   const primaryItems = (b.booking_items ?? []).filter((bi) => !bi.is_free);
   const freeItems = (b.booking_items ?? []).filter((bi) => bi.is_free);
+  const isOverdue = b.status === 'active' && b.end_date < today();
+  const outstandingBalance = b.payment_status === 'partial'
+    ? b.total_price - b.advance_amount
+    : 0;
 
   return (
     <View className="bg-white dark:bg-black-600 rounded-2xl p-4 mb-3">
+      {/* Overdue banner */}
+      {isOverdue && (
+        <View className="flex-row items-center bg-flag_red rounded-xl px-3 py-2 mb-3 gap-2">
+          <AlertTriangle size={13} color="#ffffff" />
+          <Text className="text-xs font-semibold text-white">Overdue — item not yet returned</Text>
+        </View>
+      )}
+
       {/* Top row */}
       <View className="flex-row items-start justify-between mb-3">
         <Text className="text-xs font-mono text-black-800 dark:text-black-800">{b.booking_code}</Text>
@@ -67,18 +85,26 @@ export function BookingCard({ booking: b, onMarkPaid, onMarkPending, onCancel, o
       </View>
 
       {/* Price row */}
-      <View className="flex-row items-center justify-between border-t border-platinum-600 dark:border-black-500 pt-3 mb-3">
-        <Text className="text-base font-bold text-flag_red">{formatCurrency(b.total_price)}</Text>
-        <View className="flex-row gap-3">
-          {b.payment_method && (
-            <Text className="text-xs text-black-800 dark:text-black-800 capitalize">{b.payment_method.replace('_', ' ')}</Text>
-          )}
-          {b.advance_amount > 0 && (
-            <Text className="text-xs text-black-800 dark:text-black-800">
-              Advance: {formatCurrency(b.advance_amount)}
-            </Text>
-          )}
+      <View className="border-t border-platinum-600 dark:border-black-500 pt-3 mb-3">
+        <View className="flex-row items-center justify-between">
+          <Text className="text-base font-bold text-flag_red">{formatCurrency(b.total_price)}</Text>
+          <View className="flex-row gap-3">
+            {b.payment_method && (
+              <Text className="text-xs text-black-800 dark:text-black-800 capitalize">{b.payment_method.replace('_', ' ')}</Text>
+            )}
+            {b.advance_amount > 0 && (
+              <Text className="text-xs text-black-800 dark:text-black-800">
+                Advance: {formatCurrency(b.advance_amount)}
+              </Text>
+            )}
+          </View>
         </View>
+        {outstandingBalance > 0 && (
+          <View className="flex-row items-center justify-between mt-1.5 bg-amber-50 dark:bg-amber-900/20 rounded-lg px-2.5 py-1.5">
+            <Text className="text-xs font-medium text-amber-700 dark:text-amber-400">Balance due</Text>
+            <Text className="text-sm font-bold text-amber-700 dark:text-amber-400">{formatCurrency(outstandingBalance)}</Text>
+          </View>
+        )}
       </View>
 
       {/* Actions */}
@@ -116,6 +142,9 @@ export function BookingCard({ booking: b, onMarkPaid, onMarkPending, onCancel, o
             <XCircle size={13} color="#d61e30" />
           </TouchableOpacity>
         )}
+        <TouchableOpacity onPress={handleShare} className="px-3 py-2 rounded-xl bg-platinum-600 dark:bg-black-500">
+          <Share2 size={13} color={iconColor} />
+        </TouchableOpacity>
       </View>
     </View>
   );

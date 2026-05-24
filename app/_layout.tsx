@@ -4,7 +4,10 @@ import { Stack, useRouter, useSegments } from 'expo-router';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import { StatusBar } from 'expo-status-bar';
+import * as SplashScreen from 'expo-splash-screen';
 import { AuthProvider, useAuth } from '@/context/AuthContext';
+
+SplashScreen.preventAutoHideAsync();
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -19,6 +22,7 @@ function RootLayoutNav() {
 
   useEffect(() => {
     if (isLoading) return;
+    SplashScreen.hideAsync();
     const inAuth = segments[0] === '(auth)';
     if (!user && !inAuth) {
       router.replace('/(auth)/login');

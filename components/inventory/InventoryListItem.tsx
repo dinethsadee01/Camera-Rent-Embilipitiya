@@ -12,7 +12,8 @@ import { useTheme } from '@/hooks/useTheme';
 import type { Item } from '@/lib/types';
 
 const CATEGORY_LABEL: Record<string, string> = {
-  camera: 'Camera', lens: 'Lens', accessory: 'Accessory', lighting: 'Lighting', other: 'Other',
+  camera: 'Camera', lens: 'Lens', drone: 'Drone', stabilizer: 'Stabilizer',
+  lighting: 'Lighting', support: 'Support', accessory: 'Accessory', other: 'Other',
 };
 
 interface InventoryListItemProps {

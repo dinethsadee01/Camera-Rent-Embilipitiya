@@ -1,6 +1,7 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/lib/supabase';
 import { generateBookingCode } from '@/lib/sku';
+import { today } from '@/lib/utils';
 import type { Booking, BookingWithRelations, BookingStatus, PaymentStatus, PaymentMethod } from '@/lib/types';
 
 const BOOKING_SELECT = `
@@ -151,6 +152,60 @@ export function useAddBooking() {
   });
 }
 
+export function useUpdateBookingFull() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: async ({
+      id,
+      updates,
+      items,
+    }: {
+      id: string;
+      updates: {
+        start_date: string;
+        end_date: string;
+        total_price: number;
+        payment_status: PaymentStatus;
+        payment_method: PaymentMethod | null;
+        advance_amount: number;
+        notes: string | null;
+      };
+      items: NewBookingItemInput[];
+    }) => {
+      const { error: bookingError } = await supabase
+        .from('bookings')
+        .update(updates)
+        .eq('id', id);
+      if (bookingError) throw bookingError;
+
+      const { error: deleteError } = await supabase
+        .from('booking_items')
+        .delete()
+        .eq('booking_id', id);
+      if (deleteError) throw deleteError;
+
+      if (items.length > 0) {
+        const { error: insertError } = await supabase
+          .from('booking_items')
+          .insert(items.map((item) => ({ ...item, booking_id: id })));
+        if (insertError) throw insertError;
+      }
+
+      const { data, error } = await supabase
+        .from('bookings')
+        .select(BOOKING_SELECT)
+        .eq('id', id)
+        .single();
+      if (error) throw error;
+      return data as BookingWithRelations;
+    },
+    onSuccess: (_, vars) => {
+      queryClient.invalidateQueries({ queryKey: ['bookings'] });
+      queryClient.invalidateQueries({ queryKey: ['bookings', vars.id] });
+    },
+  });
+}
+
 export function useUpdateBooking() {
   const queryClient = useQueryClient();
   return useMutation({
@@ -189,4 +244,21 @@ export function useMarkBookingPaid() {
     markPending: (id: string) =>
       update.mutateAsync({ id, payment_status: 'pending' as PaymentStatus }),
   };
+}
+
+// Advances upcoming bookings whose start_date <= today to 'active'.
+// Call once on app load / bookings screen mount.
+export function useAutoAdvanceBookings() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: async () => {
+      const { error } = await supabase
+        .from('bookings')
+        .update({ status: 'active' })
+        .eq('status', 'upcoming')
+        .lte('start_date', today());
+      if (error) throw error;
+    },
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: ['bookings'] }),
+  });
 }

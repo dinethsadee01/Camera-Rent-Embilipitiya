@@ -8,6 +8,7 @@ import {
   Platform,
   Alert,
   ActivityIndicator,
+  Image,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useAuth } from '@/context/AuthContext';
@@ -17,10 +18,11 @@ import {
   authenticateWithBiometrics,
   getSession,
 } from '@/lib/auth';
-import { Camera } from 'lucide-react-native';
+import { useTheme } from '@/hooks/useTheme';
 
 export default function LoginScreen() {
   const { setUser } = useAuth();
+  const { isDark } = useTheme();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [loading, setLoading] = useState(false);
@@ -87,17 +89,16 @@ export default function LoginScreen() {
         className="flex-1 justify-center px-6"
         behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
       >
-        {/* Logo & branding */}
+        {/* Logo */}
         <View className="items-center mb-10">
-          <View className="w-16 h-16 rounded-2xl bg-flag_red items-center justify-center mb-4">
-            <Camera size={32} color="#ffffff" />
-          </View>
-          <Text className="text-2xl font-bold text-black dark:text-platinum tracking-tight">
-            Camera Rent
-          </Text>
-          <Text className="text-sm text-black-800 dark:text-black-900 mt-1">
-            Embilipitiya
-          </Text>
+          <Image
+            source={isDark
+              ? require('@/assets/Logo-white.png')
+              : require('@/assets/Logo-black.png')
+            }
+            style={{ width: 220, height: 110 }}
+            resizeMode="contain"
+          />
         </View>
 
         {/* Card */}
@@ -169,7 +170,7 @@ export default function LoginScreen() {
         </View>
 
         <Text className="text-center text-xs text-black-800 dark:text-black-800 mt-6">
-          Camera Rent Embilipitiya · la.aura353@gmail.com
+          Camera Rent Embilipitiya
         </Text>
       </KeyboardAvoidingView>
     </SafeAreaView>
