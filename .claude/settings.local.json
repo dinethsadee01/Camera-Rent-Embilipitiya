@@ -1,0 +1,11 @@
+{
+  "permissions": {
+    "allow": [
+      "PowerShell(cd D:\\\\CameraRent; node node_modules/expo-modules-autolinking/build/index.js react-native-config --platform android 2>&1 | ConvertFrom-Json | Select-Object -ExpandProperty dependencies | Where-Object {$_.configuration -match \"worklets\"} 2>&1 | Select-Object -First 10)",
+      "PowerShell(Out-File *)",
+      "PowerShell(Select-String *)",
+      "PowerShell(Get-Content *)",
+      "PowerShell(Get-ChildItem *)"
+    ]
+  }
+}
