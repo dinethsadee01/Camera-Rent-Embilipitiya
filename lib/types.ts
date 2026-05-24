@@ -31,15 +31,23 @@ export interface Customer {
   updated_at: string;
 }
 
+export interface BookingItem {
+  id: string;
+  booking_id: string;
+  item_id: string | null;
+  custom_name: string | null;
+  quantity: number;
+  daily_rate: number;
+  is_free: boolean;
+  item?: Item;
+}
+
 export interface Booking {
   id: string;
   booking_code: string;
   customer_id: string;
-  item_id: string;
-  quantity: number;
   start_date: string;
   end_date: string;
-  daily_rate: number;
   total_price: number;
   status: BookingStatus;
   payment_status: PaymentStatus;
@@ -49,12 +57,12 @@ export interface Booking {
   created_at: string;
   updated_at: string;
   customer?: Customer;
-  item?: Item;
+  booking_items?: BookingItem[];
 }
 
 export interface BookingWithRelations extends Booking {
   customer: Customer;
-  item: Item;
+  booking_items: BookingItem[];
 }
 
 export interface AppUser {

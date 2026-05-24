@@ -42,10 +42,14 @@ export default function AddNewScreen() {
   async function handleNewBooking(data: Parameters<typeof addBooking.mutateAsync>[0]) {
     const result = await addBooking.mutateAsync(data);
     setActiveForm(null);
+    const primaryItems = (result.booking_items ?? []).filter((bi) => !bi.is_free);
+    const itemSummary = primaryItems.length === 1
+      ? (primaryItems[0].item?.name ?? primaryItems[0].custom_name ?? '')
+      : `${primaryItems.length} items`;
     setSuccessData({
       booking_code: result.booking_code,
       customerName: result.customer?.full_name ?? '',
-      itemName: result.item?.name ?? '',
+      itemName: itemSummary,
       startDate: result.start_date,
       endDate: result.end_date,
       totalPrice: result.total_price,

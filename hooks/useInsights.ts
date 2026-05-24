@@ -1,9 +1,9 @@
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/lib/supabase';
 import { startOfMonth, endOfMonth, startOfWeek, subMonths, format } from 'date-fns';
-import type { BookingWithRelations, InsightsSummary } from '@/lib/types';
+import type { BookingWithRelations, InsightsSummary, Item } from '@/lib/types';
 
-const BOOKING_SELECT = `*, customer:customers(*), item:items(*)`;
+const BOOKING_SELECT = `*, customer:customers(*), booking_items(*, item:items(*))`;
 
 export function useInsights() {
   return useQuery({
@@ -60,17 +60,22 @@ export function useInsights() {
 
       const itemCounts = new Map<string, number>();
       for (const b of bookings) {
-        const key = b.item_id;
-        itemCounts.set(key, (itemCounts.get(key) ?? 0) + 1);
+        for (const bi of (b.booking_items ?? [])) {
+          if (bi.item_id && !bi.is_free) {
+            itemCounts.set(bi.item_id, (itemCounts.get(bi.item_id) ?? 0) + 1);
+          }
+        }
       }
+
+      const allBookingItems = bookings.flatMap((b) => b.booking_items ?? []);
       const topItems = [...itemCounts.entries()]
         .sort((a, b) => b[1] - a[1])
         .slice(0, 5)
-        .map(([item_id, count]) => ({
-          item: bookings.find((b) => b.item_id === item_id)!.item,
-          count,
-        }))
-        .filter((x) => x.item);
+        .map(([item_id, count]) => {
+          const bi = allBookingItems.find((x) => x.item_id === item_id);
+          return bi?.item ? { item: bi.item as Item, count } : null;
+        })
+        .filter((x): x is { item: Item; count: number } => x !== null);
 
       return {
         revenueThisMonth,

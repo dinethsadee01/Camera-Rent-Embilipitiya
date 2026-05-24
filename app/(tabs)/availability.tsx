@@ -7,6 +7,7 @@ import { FilterChips } from '@/components/ui/FilterChip';
 import { SkeletonCard } from '@/components/ui/Skeleton';
 import { useItems } from '@/hooks/useInventory';
 import { useAllActiveBookings } from '@/hooks/useBookings';
+import type { ActiveBookingEntry } from '@/hooks/useBookings';
 import { useTheme } from '@/hooks/useTheme';
 import { formatCurrency } from '@/lib/utils';
 import {
@@ -60,14 +61,16 @@ export default function AvailabilityScreen() {
       const isPast = isBefore(date, today) && !isToday(date);
       if (isPast) return { date, status: 'past', dateStr };
 
-      const relevantBookings = (bookings ?? []).filter((b) => {
-        const inRange = b.start_date <= dateStr && b.end_date >= dateStr;
-        const matchItem = selectedItem === 'all' || b.item_id === selectedItem;
-        return inRange && matchItem;
-      });
+      const inRangeBookings = (bookings ?? []).filter(
+        (b) => b.start_date <= dateStr && b.end_date >= dateStr
+      );
 
       if (selectedItem === 'all') {
-        const bookedItemIds = new Set(relevantBookings.map((b) => b.item_id));
+        const bookedItemIds = new Set(
+          inRangeBookings.flatMap((b) =>
+            b.booking_items.map((bi) => bi.item_id).filter(Boolean)
+          )
+        );
         const totalItems = items?.length ?? 0;
         if (bookedItemIds.size === 0) return { date, status: 'available', dateStr };
         if (bookedItemIds.size >= totalItems) return { date, status: 'booked', dateStr };
@@ -75,7 +78,10 @@ export default function AvailabilityScreen() {
       } else {
         const item = items?.find((i) => i.id === selectedItem);
         if (!item) return { date, status: 'available', dateStr };
-        const bookedQty = relevantBookings.reduce((s, b) => s + b.quantity, 0);
+        const bookedQty = inRangeBookings.reduce((s, b) => {
+          const bi = b.booking_items.find((x) => x.item_id === selectedItem);
+          return s + (bi?.quantity ?? 0);
+        }, 0);
         if (bookedQty === 0) return { date, status: 'available', dateStr };
         if (bookedQty >= item.quantity) return { date, status: 'booked', dateStr };
         return { date, status: 'partial', dateStr };
@@ -87,8 +93,11 @@ export default function AvailabilityScreen() {
     if (!selectedDate || !items) return [];
     return items.map((item) => {
       const bookedQty = (bookings ?? [])
-        .filter((b) => b.item_id === item.id && b.start_date <= selectedDate && b.end_date >= selectedDate)
-        .reduce((s, b) => s + b.quantity, 0);
+        .filter((b) => b.start_date <= selectedDate && b.end_date >= selectedDate)
+        .reduce((s, b) => {
+          const bi = b.booking_items.find((x) => x.item_id === item.id);
+          return s + (bi?.quantity ?? 0);
+        }, 0);
       return {
         itemId: item.id,
         itemName: item.name,

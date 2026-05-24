@@ -1,12 +1,12 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/lib/supabase';
 import { generateBookingCode } from '@/lib/sku';
-import type { Booking, BookingWithRelations, BookingStatus, PaymentStatus } from '@/lib/types';
+import type { Booking, BookingWithRelations, BookingStatus, PaymentStatus, PaymentMethod } from '@/lib/types';
 
 const BOOKING_SELECT = `
   *,
   customer:customers(*),
-  item:items(*)
+  booking_items(*, item:items(*))
 `;
 
 export function useBookings() {
@@ -60,17 +60,25 @@ export function useItemBookings(itemId: string) {
     queryKey: ['bookings', 'item', itemId],
     queryFn: async () => {
       const { data, error } = await supabase
-        .from('bookings')
-        .select('*')
-        .eq('item_id', itemId)
-        .not('status', 'eq', 'cancelled')
-        .order('start_date');
+        .from('booking_items')
+        .select('booking:bookings(id, start_date, end_date, status)')
+        .eq('item_id', itemId);
       if (error) throw error;
-      return data as Booking[];
+      return (data ?? [])
+        .map((d: any) => d.booking)
+        .filter((b: any) => b && b.status !== 'cancelled');
     },
     enabled: !!itemId,
   });
 }
+
+export type ActiveBookingEntry = {
+  id: string;
+  start_date: string;
+  end_date: string;
+  status: string;
+  booking_items: { item_id: string | null; quantity: number }[];
+};
 
 export function useAllActiveBookings() {
   return useQuery({
@@ -78,25 +86,63 @@ export function useAllActiveBookings() {
     queryFn: async () => {
       const { data, error } = await supabase
         .from('bookings')
-        .select('item_id, start_date, end_date, quantity, status')
+        .select('id, start_date, end_date, status, booking_items(item_id, quantity)')
         .not('status', 'eq', 'cancelled');
       if (error) throw error;
-      return data as Pick<Booking, 'item_id' | 'start_date' | 'end_date' | 'quantity' | 'status'>[];
+      return (data ?? []) as ActiveBookingEntry[];
     },
   });
+}
+
+export interface NewBookingItemInput {
+  item_id: string | null;
+  custom_name: string | null;
+  quantity: number;
+  daily_rate: number;
+  is_free: boolean;
+}
+
+export interface NewBookingInput {
+  customer_id: string;
+  start_date: string;
+  end_date: string;
+  total_price: number;
+  status: BookingStatus;
+  payment_status: PaymentStatus;
+  payment_method: PaymentMethod | null;
+  advance_amount: number;
+  notes: string | null;
+  items: NewBookingItemInput[];
 }
 
 export function useAddBooking() {
   const queryClient = useQueryClient();
   return useMutation({
-    mutationFn: async (input: Omit<Booking, 'id' | 'booking_code' | 'created_at' | 'updated_at'>) => {
+    mutationFn: async (input: NewBookingInput) => {
+      const { items, ...bookingData } = input;
+
       const { data: existing } = await supabase.from('bookings').select('booking_code');
       const existingCodes = (existing ?? []).map((b: { booking_code: string }) => b.booking_code);
       const booking_code = generateBookingCode(existingCodes);
+
+      const { data: booking, error: bookingError } = await supabase
+        .from('bookings')
+        .insert({ ...bookingData, booking_code })
+        .select('id')
+        .single();
+      if (bookingError) throw bookingError;
+
+      if (items.length > 0) {
+        const { error: itemsError } = await supabase
+          .from('booking_items')
+          .insert(items.map((item) => ({ ...item, booking_id: booking.id })));
+        if (itemsError) throw itemsError;
+      }
+
       const { data, error } = await supabase
         .from('bookings')
-        .insert({ ...input, booking_code })
         .select(BOOKING_SELECT)
+        .eq('id', booking.id)
         .single();
       if (error) throw error;
       return data as BookingWithRelations;

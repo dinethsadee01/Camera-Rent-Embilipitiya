@@ -3,22 +3,32 @@ import {
   View, Text, ScrollView, TouchableOpacity, Modal,
   FlatList, Alert, TextInput,
 } from 'react-native';
-import { Search, Check, ChevronDown, CalendarDays } from 'lucide-react-native';
+import { Search, Check, ChevronDown, CalendarDays, Plus, X, Sparkles } from 'lucide-react-native';
 import { Input } from '@/components/ui/Input';
 import { Button } from '@/components/ui/Button';
-import { Badge } from '@/components/ui/Badge';
 import { FilterChips } from '@/components/ui/FilterChip';
-import { formatCurrency, calculateTotalPrice, getRentalDays, toISODateString } from '@/lib/utils';
+import { formatCurrency, getRentalDays, toISODateString } from '@/lib/utils';
 import { useItems } from '@/hooks/useInventory';
 import { useCustomers } from '@/hooks/useCustomers';
 import { useTheme } from '@/hooks/useTheme';
-import type { Booking, PaymentMethod } from '@/lib/types';
+import { BUNDLE_SUGGESTIONS } from '@/lib/bundles';
+import type { PaymentMethod, ItemCategory } from '@/lib/types';
+import type { NewBookingInput, NewBookingItemInput } from '@/hooks/useBookings';
 import DateTimePicker from '@react-native-community/datetimepicker';
 
-type BookingInput = Omit<Booking, 'id' | 'booking_code' | 'created_at' | 'updated_at'>;
+interface LineItem {
+  localId: string;
+  item_id: string | null;
+  custom_name: string | null;
+  display_name: string;
+  category: ItemCategory | null;
+  quantity: number;
+  daily_rate: number;
+  is_free: boolean;
+}
 
 interface BookingFormProps {
-  onSubmit: (data: BookingInput) => Promise<void>;
+  onSubmit: (data: NewBookingInput) => Promise<void>;
   onCancel: () => void;
 }
 
@@ -33,6 +43,10 @@ const PAYMENT_METHODS: { key: PaymentMethod; label: string }[] = [
   { key: 'bank_transfer', label: 'Bank Transfer' },
 ];
 
+function makeLocalId() {
+  return Math.random().toString(36).slice(2);
+}
+
 export function BookingForm({ onSubmit, onCancel }: BookingFormProps) {
   const { data: items } = useItems();
   const { data: customers } = useCustomers();
@@ -40,13 +54,9 @@ export function BookingForm({ onSubmit, onCancel }: BookingFormProps) {
 
   const [customerId, setCustomerId] = useState('');
   const [customerName, setCustomerName] = useState('');
-  const [itemId, setItemId] = useState('');
-  const [itemName, setItemName] = useState('');
-  const [itemRate, setItemRate] = useState(0);
-  const [quantity, setQuantity] = useState('1');
+  const [lineItems, setLineItems] = useState<LineItem[]>([]);
   const [startDate, setStartDate] = useState(new Date());
   const [endDate, setEndDate] = useState(new Date());
-  const [dailyRateOverride, setDailyRateOverride] = useState('');
   const [paymentOption, setPaymentOption] = useState('pending');
   const [paymentMethod, setPaymentMethod] = useState<PaymentMethod | null>(null);
   const [advanceAmount, setAdvanceAmount] = useState('');
@@ -59,13 +69,19 @@ export function BookingForm({ onSubmit, onCancel }: BookingFormProps) {
   const [showEndDate, setShowEndDate] = useState(false);
   const [customerSearch, setCustomerSearch] = useState('');
   const [itemSearch, setItemSearch] = useState('');
+  const [itemPickerCategoryFilter, setItemPickerCategoryFilter] = useState<ItemCategory | null>(null);
 
-  const effectiveDailyRate = dailyRateOverride ? parseFloat(dailyRateOverride) || 0 : itemRate;
-  const qty = parseInt(quantity, 10) || 1;
   const startStr = toISODateString(startDate);
   const endStr = toISODateString(endDate);
-  const totalPrice = calculateTotalPrice(effectiveDailyRate, startStr, endStr, qty);
   const days = getRentalDays(startStr, endStr);
+
+  const totalPrice = useMemo(() =>
+    lineItems.reduce((sum, li) => {
+      if (li.is_free) return sum;
+      return sum + li.daily_rate * li.quantity * days;
+    }, 0),
+    [lineItems, days]
+  );
 
   const filteredCustomers = useMemo(() =>
     (customers ?? []).filter((c) => {
@@ -73,33 +89,146 @@ export function BookingForm({ onSubmit, onCancel }: BookingFormProps) {
       return !q || c.full_name.toLowerCase().includes(q) || c.phone.includes(q) || c.customer_code.toLowerCase().includes(q);
     }), [customers, customerSearch]);
 
-  const filteredItems = useMemo(() =>
-    (items ?? []).filter((i) => {
+  const filteredItems = useMemo(() => {
+    const alreadyAdded = new Set(lineItems.map((li) => li.item_id).filter(Boolean));
+    return (items ?? []).filter((i) => {
+      if (alreadyAdded.has(i.id)) return false;
       const q = itemSearch.toLowerCase();
-      return !q || i.name.toLowerCase().includes(q) || i.sku.toLowerCase().includes(q);
-    }), [items, itemSearch]);
+      const matchSearch = !q || i.name.toLowerCase().includes(q) || i.sku.toLowerCase().includes(q);
+      const matchCat = !itemPickerCategoryFilter || i.category === itemPickerCategoryFilter;
+      return matchSearch && matchCat;
+    });
+  }, [items, itemSearch, itemPickerCategoryFilter, lineItems]);
+
+  // Compute suggestion chips based on the categories currently in the booking
+  const suggestions = useMemo(() => {
+    const addedCategories = new Set(
+      lineItems.filter((li) => !li.is_free && li.category).map((li) => li.category as ItemCategory)
+    );
+    const addedFreeLabels = new Set(
+      lineItems.filter((li) => li.is_free && li.custom_name).map((li) => li.custom_name!)
+    );
+    const addedItemCategories = new Set(
+      lineItems.filter((li) => !li.is_free && li.category).map((li) => li.category as ItemCategory)
+    );
+
+    const seen = new Set<string>();
+    const result: Array<{ key: string; label: string; onPress: () => void }> = [];
+
+    for (const cat of addedCategories) {
+      const catSuggestions = BUNDLE_SUGGESTIONS[cat] ?? [];
+      for (const s of catSuggestions) {
+        if (s.type === 'free') {
+          if (addedFreeLabels.has(s.label)) continue;
+          const key = `free:${s.label}`;
+          if (seen.has(key)) continue;
+          seen.add(key);
+          result.push({
+            key,
+            label: `${s.label} (Free)`,
+            onPress: () => addFreeItem(s.label),
+          });
+        } else {
+          if (addedItemCategories.has(s.category)) continue;
+          const key = `item:${s.category}`;
+          if (seen.has(key)) continue;
+          seen.add(key);
+          const hint = s.hint;
+          const category = s.category;
+          result.push({
+            key,
+            label: hint,
+            onPress: () => openItemPickerForCategory(category),
+          });
+        }
+      }
+    }
+    return result;
+  }, [lineItems, items]);
+
+  function addFreeItem(label: string) {
+    setLineItems((prev) => [
+      ...prev,
+      {
+        localId: makeLocalId(),
+        item_id: null,
+        custom_name: label,
+        display_name: label,
+        category: null,
+        quantity: 1,
+        daily_rate: 0,
+        is_free: true,
+      },
+    ]);
+  }
+
+  function openItemPickerForCategory(category: ItemCategory) {
+    setItemPickerCategoryFilter(category);
+    setItemSearch('');
+    setShowItemPicker(true);
+  }
+
+  function openItemPicker() {
+    setItemPickerCategoryFilter(null);
+    setItemSearch('');
+    setShowItemPicker(true);
+  }
+
+  function selectItem(item: NonNullable<typeof items>[number]) {
+    setLineItems((prev) => [
+      ...prev,
+      {
+        localId: makeLocalId(),
+        item_id: item.id,
+        custom_name: null,
+        display_name: item.name,
+        category: item.category,
+        quantity: 1,
+        daily_rate: item.daily_rate,
+        is_free: false,
+      },
+    ]);
+    setShowItemPicker(false);
+    setItemSearch('');
+    setItemPickerCategoryFilter(null);
+  }
+
+  function removeLineItem(localId: string) {
+    setLineItems((prev) => prev.filter((li) => li.localId !== localId));
+  }
+
+  function updateQuantity(localId: string, qty: number) {
+    setLineItems((prev) =>
+      prev.map((li) => (li.localId === localId ? { ...li, quantity: Math.max(1, qty) } : li))
+    );
+  }
 
   async function handleSubmit() {
     if (!customerId) { Alert.alert('Required', 'Please select a customer.'); return; }
-    if (!itemId) { Alert.alert('Required', 'Please select an item.'); return; }
+    if (lineItems.length === 0) { Alert.alert('Required', 'Add at least one item.'); return; }
     if (endDate < startDate) { Alert.alert('Invalid dates', 'End date must be on or after start date.'); return; }
     if (paymentOption === 'partial' && !advanceAmount) { Alert.alert('Required', 'Enter advance amount for partial payment.'); return; }
 
     setLoading(true);
     try {
+      const items: NewBookingItemInput[] = lineItems.map((li) => ({
+        item_id: li.item_id,
+        custom_name: li.custom_name,
+        quantity: li.quantity,
+        daily_rate: li.daily_rate,
+        is_free: li.is_free,
+      }));
       await onSubmit({
         customer_id: customerId,
-        item_id: itemId,
-        quantity: qty,
         start_date: startStr,
         end_date: endStr,
-        daily_rate: effectiveDailyRate,
         total_price: totalPrice,
         status: 'upcoming',
         payment_status: paymentOption === 'paid' ? 'paid' : paymentOption === 'partial' ? 'partial' : 'pending',
         payment_method: paymentMethod,
         advance_amount: paymentOption === 'partial' ? parseFloat(advanceAmount) || 0 : 0,
         notes: notes.trim() || null,
+        items,
       });
     } finally {
       setLoading(false);
@@ -107,6 +236,7 @@ export function BookingForm({ onSubmit, onCancel }: BookingFormProps) {
   }
 
   const iconColor = isDark ? '#999999' : '#666666';
+  const chipBg = isDark ? '#2a2a2a' : '#f0f0f0';
 
   return (
     <ScrollView showsVerticalScrollIndicator={false} keyboardShouldPersistTaps="handled">
@@ -117,25 +247,10 @@ export function BookingForm({ onSubmit, onCancel }: BookingFormProps) {
         className="flex-row items-center bg-platinum-700 dark:bg-black-500 rounded-xl px-4 py-3 mb-4"
       >
         <Text className={`flex-1 text-base ${customerId ? 'text-black dark:text-platinum' : 'text-black-800 dark:text-black-800'}`}>
-          {customerId ? `${customerName}` : 'Select customer...'}
+          {customerId ? customerName : 'Select customer...'}
         </Text>
         <ChevronDown size={16} color={iconColor} />
       </TouchableOpacity>
-
-      {/* Item selector */}
-      <Text className="text-xs font-medium text-black-700 dark:text-black-900 mb-1.5 uppercase tracking-wide">Item</Text>
-      <TouchableOpacity
-        onPress={() => setShowItemPicker(true)}
-        className="flex-row items-center bg-platinum-700 dark:bg-black-500 rounded-xl px-4 py-3 mb-4"
-      >
-        <Text className={`flex-1 text-base ${itemId ? 'text-black dark:text-platinum' : 'text-black-800 dark:text-black-800'}`}>
-          {itemId ? itemName : 'Select item...'}
-        </Text>
-        <ChevronDown size={16} color={iconColor} />
-      </TouchableOpacity>
-
-      {/* Quantity */}
-      <Input label="Quantity" value={quantity} onChangeText={setQuantity} keyboardType="number-pad" placeholder="1" className="mb-4" />
 
       {/* Date Range */}
       <View className="flex-row gap-3 mb-4">
@@ -183,27 +298,93 @@ export function BookingForm({ onSubmit, onCancel }: BookingFormProps) {
         />
       )}
 
-      {/* Rate & Total */}
-      <View className="flex-row gap-3 mb-1">
-        <Input
-          label="Daily Rate (Rs.)"
-          value={dailyRateOverride || (itemRate > 0 ? String(itemRate) : '')}
-          onChangeText={setDailyRateOverride}
-          keyboardType="decimal-pad"
-          placeholder={itemRate > 0 ? String(itemRate) : '0.00'}
-          className="flex-1"
-        />
-        <View className="flex-1">
-          <Text className="text-xs font-medium text-black-700 dark:text-black-900 mb-1.5 uppercase tracking-wide">Total</Text>
-          <View className="bg-platinum-700 dark:bg-black-500 rounded-xl px-4 py-3">
-            <Text className="text-base font-bold text-flag_red">{formatCurrency(totalPrice)}</Text>
+      {/* Items section */}
+      <Text className="text-xs font-medium text-black-700 dark:text-black-900 mb-2 uppercase tracking-wide">Items</Text>
+
+      {lineItems.length > 0 && (
+        <View className="bg-white dark:bg-black-600 rounded-2xl mb-3 overflow-hidden">
+          {lineItems.map((li, idx) => (
+            <View
+              key={li.localId}
+              className={`flex-row items-center px-4 py-3 ${idx < lineItems.length - 1 ? 'border-b border-platinum-600 dark:border-black-500' : ''}`}
+            >
+              <View className="flex-1 mr-3">
+                <Text className="text-sm font-medium text-black dark:text-platinum" numberOfLines={1}>
+                  {li.display_name}
+                </Text>
+                {li.is_free ? (
+                  <Text className="text-xs text-green-600 dark:text-green-400">Free</Text>
+                ) : (
+                  <Text className="text-xs text-black-800 dark:text-black-800">
+                    {formatCurrency(li.daily_rate)}/day · {days} day{days !== 1 ? 's' : ''} = {formatCurrency(li.daily_rate * li.quantity * days)}
+                  </Text>
+                )}
+              </View>
+              {!li.is_free && (
+                <View className="flex-row items-center mr-3">
+                  <TouchableOpacity
+                    onPress={() => updateQuantity(li.localId, li.quantity - 1)}
+                    className="w-7 h-7 rounded-lg bg-platinum-600 dark:bg-black-500 items-center justify-center"
+                  >
+                    <Text className="text-sm font-bold text-black dark:text-platinum">−</Text>
+                  </TouchableOpacity>
+                  <Text className="mx-2 text-sm font-medium text-black dark:text-platinum w-5 text-center">{li.quantity}</Text>
+                  <TouchableOpacity
+                    onPress={() => updateQuantity(li.localId, li.quantity + 1)}
+                    className="w-7 h-7 rounded-lg bg-platinum-600 dark:bg-black-500 items-center justify-center"
+                  >
+                    <Text className="text-sm font-bold text-black dark:text-platinum">+</Text>
+                  </TouchableOpacity>
+                </View>
+              )}
+              <TouchableOpacity onPress={() => removeLineItem(li.localId)}>
+                <X size={16} color="#d61e30" />
+              </TouchableOpacity>
+            </View>
+          ))}
+        </View>
+      )}
+
+      {/* Suggestion chips */}
+      {suggestions.length > 0 && (
+        <View className="mb-3">
+          <View className="flex-row items-center mb-1.5">
+            <Sparkles size={12} color={isDark ? '#aaaaaa' : '#888888'} />
+            <Text className="ml-1 text-xs text-black-800 dark:text-black-800">Frequently rented together</Text>
+          </View>
+          <View className="flex-row flex-wrap gap-2">
+            {suggestions.map((s) => (
+              <TouchableOpacity
+                key={s.key}
+                onPress={s.onPress}
+                style={{ backgroundColor: chipBg }}
+                className="flex-row items-center px-3 py-1.5 rounded-full border border-platinum-400 dark:border-black-500"
+              >
+                <Plus size={11} color="#d61e30" />
+                <Text className="ml-1 text-xs font-medium text-black dark:text-platinum">{s.label}</Text>
+              </TouchableOpacity>
+            ))}
           </View>
         </View>
-      </View>
-      {days > 0 && itemId && (
-        <Text className="text-xs text-black-800 dark:text-black-800 mb-4">
-          {days} day{days !== 1 ? 's' : ''} × {qty} unit{qty !== 1 ? 's' : ''} × {formatCurrency(effectiveDailyRate)}/day
-        </Text>
+      )}
+
+      {/* Add item button */}
+      <TouchableOpacity
+        onPress={openItemPicker}
+        className="flex-row items-center justify-center border border-dashed border-platinum-400 dark:border-black-600 rounded-xl py-3 mb-4"
+      >
+        <Plus size={15} color={isDark ? '#aaaaaa' : '#888888'} />
+        <Text className="ml-2 text-sm text-black-800 dark:text-black-800">Add item</Text>
+      </TouchableOpacity>
+
+      {/* Total */}
+      {lineItems.length > 0 && (
+        <View className="flex-row items-center justify-between bg-white dark:bg-black-600 rounded-xl px-4 py-3 mb-4">
+          <Text className="text-sm text-black-700 dark:text-black-900">
+            {days} day{days !== 1 ? 's' : ''} total
+          </Text>
+          <Text className="text-base font-bold text-flag_red">{formatCurrency(totalPrice)}</Text>
+        </View>
       )}
 
       {/* Payment option */}
@@ -293,7 +474,9 @@ export function BookingForm({ onSubmit, onCancel }: BookingFormProps) {
       {/* Item Picker Modal */}
       <Modal visible={showItemPicker} animationType="slide" presentationStyle="pageSheet" onRequestClose={() => setShowItemPicker(false)}>
         <View className="flex-1 bg-platinum-700 dark:bg-black px-5 pt-6">
-          <Text className="text-lg font-bold text-black dark:text-platinum mb-4">Select Item</Text>
+          <Text className="text-lg font-bold text-black dark:text-platinum mb-4">
+            {itemPickerCategoryFilter ? `Select ${itemPickerCategoryFilter.charAt(0).toUpperCase() + itemPickerCategoryFilter.slice(1)}` : 'Select Item'}
+          </Text>
           <View className="flex-row items-center bg-white dark:bg-black-600 rounded-xl px-3 py-2.5 mb-3">
             <Search size={16} color={iconColor} />
             <TextInput
@@ -309,18 +492,20 @@ export function BookingForm({ onSubmit, onCancel }: BookingFormProps) {
             keyExtractor={(i) => i.id}
             renderItem={({ item: i }) => (
               <TouchableOpacity
-                onPress={() => { setItemId(i.id); setItemName(i.name); setItemRate(i.daily_rate); setDailyRateOverride(''); setShowItemPicker(false); setItemSearch(''); }}
+                onPress={() => selectItem(i)}
                 className="flex-row items-center py-3 border-b border-platinum-600 dark:border-black-500"
               >
                 <View className="flex-1">
                   <Text className="text-base text-black dark:text-platinum">{i.name}</Text>
                   <Text className="text-xs text-black-800 dark:text-black-800">{i.sku} · {formatCurrency(i.daily_rate)}/day · {i.quantity} units</Text>
                 </View>
-                {itemId === i.id && <Check size={16} color="#d61e30" />}
               </TouchableOpacity>
             )}
+            ListEmptyComponent={
+              <Text className="text-sm text-black-800 dark:text-black-800 text-center py-8">No items found</Text>
+            }
           />
-          <Button variant="outline" onPress={() => setShowItemPicker(false)} className="mt-4">Close</Button>
+          <Button variant="outline" onPress={() => { setShowItemPicker(false); setItemPickerCategoryFilter(null); }} className="mt-4">Close</Button>
         </View>
       </Modal>
     </ScrollView>

@@ -53,7 +53,11 @@ export default function BookingsScreen() {
         !q ||
         b.booking_code.toLowerCase().includes(q) ||
         b.customer?.full_name.toLowerCase().includes(q) ||
-        b.item?.name.toLowerCase().includes(q);
+        (b.booking_items ?? []).some(
+          (bi) =>
+            bi.item?.name.toLowerCase().includes(q) ||
+            bi.custom_name?.toLowerCase().includes(q)
+        );
 
       const matchTab =
         tab === 'pending_payment'

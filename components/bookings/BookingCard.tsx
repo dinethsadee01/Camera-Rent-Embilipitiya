@@ -18,6 +18,9 @@ export function BookingCard({ booking: b, onMarkPaid, onMarkPending, onCancel, o
   const { isDark } = useTheme();
   const iconColor = isDark ? '#999999' : '#666666';
 
+  const primaryItems = (b.booking_items ?? []).filter((bi) => !bi.is_free);
+  const freeItems = (b.booking_items ?? []).filter((bi) => bi.is_free);
+
   return (
     <View className="bg-white dark:bg-black-600 rounded-2xl p-4 mb-3">
       {/* Top row */}
@@ -29,43 +32,57 @@ export function BookingCard({ booking: b, onMarkPaid, onMarkPending, onCancel, o
         </View>
       </View>
 
-      {/* Customer & Item */}
-      <View className="gap-1.5 mb-3">
-        <View className="flex-row items-center">
-          <User size={13} color={iconColor} />
-          <Text className="ml-2 text-sm font-medium text-black dark:text-platinum">{b.customer?.full_name}</Text>
-          <Text className="ml-1.5 text-xs text-black-800 dark:text-black-800">{b.customer?.customer_code}</Text>
-        </View>
-        <View className="flex-row items-center">
-          <Package size={13} color={iconColor} />
-          <Text className="ml-2 text-sm text-black dark:text-platinum">{b.item?.name}</Text>
-          {b.quantity > 1 && (
-            <Text className="ml-1.5 text-xs text-black-800 dark:text-black-800">×{b.quantity}</Text>
+      {/* Customer */}
+      <View className="flex-row items-center mb-2">
+        <User size={13} color={iconColor} />
+        <Text className="ml-2 text-sm font-medium text-black dark:text-platinum">{b.customer?.full_name}</Text>
+        <Text className="ml-1.5 text-xs text-black-800 dark:text-black-800">{b.customer?.customer_code}</Text>
+      </View>
+
+      {/* Items */}
+      <View className="flex-row items-start mb-2">
+        <Package size={13} color={iconColor} style={{ marginTop: 2 }} />
+        <View className="ml-2 flex-1">
+          {primaryItems.map((bi, idx) => (
+            <Text key={idx} className="text-sm text-black dark:text-platinum">
+              {bi.item?.name ?? bi.custom_name}
+              {bi.quantity > 1 ? ` ×${bi.quantity}` : ''}
+              <Text className="text-xs text-black-800 dark:text-black-800"> · {formatCurrency(bi.daily_rate)}/day</Text>
+            </Text>
+          ))}
+          {freeItems.length > 0 && (
+            <Text className="text-xs text-black-800 dark:text-black-800 mt-0.5">
+              + {freeItems.map((bi) => bi.custom_name ?? bi.item?.name).join(', ')} (free)
+            </Text>
           )}
         </View>
-        <View className="flex-row items-center">
-          <CalendarDays size={13} color={iconColor} />
-          <Text className="ml-2 text-sm text-black-700 dark:text-black-900">
-            {formatDate(b.start_date)} → {formatDate(b.end_date)}
-          </Text>
-        </View>
+      </View>
+
+      {/* Dates */}
+      <View className="flex-row items-center mb-3">
+        <CalendarDays size={13} color={iconColor} />
+        <Text className="ml-2 text-sm text-black-700 dark:text-black-900">
+          {formatDate(b.start_date)} → {formatDate(b.end_date)}
+        </Text>
       </View>
 
       {/* Price row */}
       <View className="flex-row items-center justify-between border-t border-platinum-600 dark:border-black-500 pt-3 mb-3">
         <Text className="text-base font-bold text-flag_red">{formatCurrency(b.total_price)}</Text>
-        {b.payment_method && (
-          <Text className="text-xs text-black-800 dark:text-black-800 capitalize">{b.payment_method.replace('_', ' ')}</Text>
-        )}
-        {b.advance_amount > 0 && (
-          <Text className="text-xs text-black-800 dark:text-black-800">
-            Advance: {formatCurrency(b.advance_amount)}
-          </Text>
-        )}
+        <View className="flex-row gap-3">
+          {b.payment_method && (
+            <Text className="text-xs text-black-800 dark:text-black-800 capitalize">{b.payment_method.replace('_', ' ')}</Text>
+          )}
+          {b.advance_amount > 0 && (
+            <Text className="text-xs text-black-800 dark:text-black-800">
+              Advance: {formatCurrency(b.advance_amount)}
+            </Text>
+          )}
+        </View>
       </View>
 
       {/* Actions */}
-      <View className="flex-row gap-2">
+      <View className="flex-row gap-2 flex-wrap">
         {b.payment_status !== 'paid' && b.status !== 'cancelled' && (
           <TouchableOpacity
             onPress={onMarkPaid}
