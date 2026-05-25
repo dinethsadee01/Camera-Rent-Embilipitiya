@@ -2,9 +2,12 @@ import type { ItemCategory } from './types';
 
 const CATEGORY_PREFIX: Record<ItemCategory, string> = {
   camera: 'CAM',
-  lens: 'LENS',
+  lens: 'LNS',
   accessory: 'ACC',
-  lighting: 'LIGHT',
+  lighting: 'LGT',
+  drone: 'DRN',
+  stabilizer: 'STB',
+  support: 'SUP',
   other: 'OTH',
 };
 
