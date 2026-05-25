@@ -285,7 +285,11 @@ export function BookingForm({ onSubmit, onCancel }: BookingFormProps) {
           value={startDate}
           mode="date"
           display="default"
-          onChange={(_, d) => { setShowStartDate(false); if (d) { setStartDate(d); if (d > endDate) setEndDate(d); } }}
+          onValueChange={(d) => {
+            setShowStartDate(false);
+            if (d) { const date = new Date(d); if (!isNaN(date.getTime())) { setStartDate(date); if (date > endDate) setEndDate(date); } }
+          }}
+          onDismiss={() => setShowStartDate(false)}
         />
       )}
       {showEndDate && (
@@ -294,7 +298,11 @@ export function BookingForm({ onSubmit, onCancel }: BookingFormProps) {
           mode="date"
           minimumDate={startDate}
           display="default"
-          onChange={(_, d) => { setShowEndDate(false); if (d) setEndDate(d); }}
+          onValueChange={(d) => {
+            setShowEndDate(false);
+            if (d) { const date = new Date(d); if (!isNaN(date.getTime())) setEndDate(date); }
+          }}
+          onDismiss={() => setShowEndDate(false)}
         />
       )}
 

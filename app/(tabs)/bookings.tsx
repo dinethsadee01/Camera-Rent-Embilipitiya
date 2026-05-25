@@ -218,7 +218,11 @@ export default function BookingsScreen() {
           mode="date"
           display="default"
           maximumDate={dateTo ?? undefined}
-          onChange={(_, date) => { setPickerTarget(null); if (date) setDateFrom(date); }}
+          onValueChange={(d) => {
+            setPickerTarget(null);
+            if (d) { const date = new Date(d); if (!isNaN(date.getTime())) setDateFrom(date); }
+          }}
+          onDismiss={() => setPickerTarget(null)}
         />
       )}
       {pickerTarget === 'to' && (
@@ -227,7 +231,11 @@ export default function BookingsScreen() {
           mode="date"
           display="default"
           minimumDate={dateFrom ?? undefined}
-          onChange={(_, date) => { setPickerTarget(null); if (date) setDateTo(date); }}
+          onValueChange={(d) => {
+            setPickerTarget(null);
+            if (d) { const date = new Date(d); if (!isNaN(date.getTime())) setDateTo(date); }
+          }}
+          onDismiss={() => setPickerTarget(null)}
         />
       )}
 
