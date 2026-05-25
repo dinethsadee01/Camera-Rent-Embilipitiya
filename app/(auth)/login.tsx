@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import {
   View,
   Text,
@@ -16,6 +16,7 @@ import {
   loginWithCredentials,
   isBiometricsAvailable,
   authenticateWithBiometrics,
+  getBiometricsEnabled,
   getSession,
 } from '@/lib/auth';
 import { useTheme } from '@/hooks/useTheme';
@@ -23,6 +24,7 @@ import { useTheme } from '@/hooks/useTheme';
 export default function LoginScreen() {
   const { setUser } = useAuth();
   const { isDark } = useTheme();
+  const passwordRef = useRef<TextInput>(null);
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [loading, setLoading] = useState(false);
@@ -36,6 +38,11 @@ export default function LoginScreen() {
   async function checkBiometricResume() {
     const session = await getSession();
     if (!session) return;
+    const biometricsEnabled = await getBiometricsEnabled();
+    if (!biometricsEnabled) {
+      await setUser(session);
+      return;
+    }
     const available = await isBiometricsAvailable();
     if (available) {
       setShowBiometric(true);
@@ -71,11 +78,6 @@ export default function LoginScreen() {
       if (!user) {
         Alert.alert('Login failed', 'Incorrect email or password.');
         return;
-      }
-      const available = await isBiometricsAvailable();
-      if (available) {
-        const ok = await authenticateWithBiometrics();
-        if (!ok) return;
       }
       await setUser(user);
     } finally {
@@ -120,6 +122,9 @@ export default function LoginScreen() {
               autoCapitalize="none"
               keyboardType="email-address"
               returnKeyType="next"
+              textContentType="emailAddress"
+              autoComplete="email"
+              onSubmitEditing={() => passwordRef.current?.focus()}
             />
           </View>
 
@@ -128,6 +133,7 @@ export default function LoginScreen() {
               Password
             </Text>
             <TextInput
+              ref={passwordRef}
               className="bg-platinum-700 dark:bg-black-500 rounded-xl px-4 py-3 text-black dark:text-platinum text-base"
               placeholder="Enter password"
               placeholderTextColor="#999999"
@@ -135,6 +141,8 @@ export default function LoginScreen() {
               onChangeText={setPassword}
               secureTextEntry
               returnKeyType="done"
+              textContentType="password"
+              autoComplete="current-password"
               onSubmitEditing={handleLogin}
             />
           </View>

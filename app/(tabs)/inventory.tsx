@@ -10,6 +10,7 @@ import { FilterChips } from '@/components/ui/FilterChip';
 import { EmptyState } from '@/components/ui/EmptyState';
 import { SkeletonCard } from '@/components/ui/Skeleton';
 import { ThemeToggle } from '@/components/ui/ThemeToggle';
+import { AppMenu } from '@/components/ui/AppMenu';
 import { ItemForm } from '@/components/inventory/ItemForm';
 import { InventoryListItem } from '@/components/inventory/InventoryListItem';
 import { Toast } from '@/components/ui/Toast';
@@ -91,7 +92,10 @@ export default function InventoryScreen() {
             {items?.length ?? 0} items
           </Text>
         </View>
-        <ThemeToggle />
+        <View className="flex-row items-center gap-2">
+          <ThemeToggle />
+          <AppMenu />
+        </View>
       </View>
 
       {/* Search */}

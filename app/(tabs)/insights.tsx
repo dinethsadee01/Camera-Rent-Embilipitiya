@@ -1,8 +1,10 @@
+import { useState } from 'react';
 import { View, Text, ScrollView, TouchableOpacity } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { TrendingUp, Package, CalendarDays, Clock, RefreshCw } from 'lucide-react-native';
 import { BarChart } from 'react-native-gifted-charts';
 import { ThemeToggle } from '@/components/ui/ThemeToggle';
+import { AppMenu } from '@/components/ui/AppMenu';
 import { SkeletonCard, Skeleton } from '@/components/ui/Skeleton';
 import { formatCurrency, formatDate } from '@/lib/utils';
 import { Badge, statusVariant, statusLabel } from '@/components/ui/Badge';
@@ -13,6 +15,7 @@ export default function InsightsScreen() {
   const { data, isLoading, refetch, isFetching } = useInsights();
   const { isDark } = useTheme();
   const textColor = isDark ? '#eeeeee' : '#000000';
+  const [selectedBar, setSelectedBar] = useState<number | null>(null);
 
   return (
     <SafeAreaView className="flex-1 bg-platinum-700 dark:bg-black">
@@ -32,6 +35,7 @@ export default function InsightsScreen() {
               <RefreshCw size={16} color={isDark ? '#eeeeee' : '#333333'} />
             </TouchableOpacity>
             <ThemeToggle />
+            <AppMenu />
           </View>
         </View>
 
@@ -82,11 +86,21 @@ export default function InsightsScreen() {
               <View className="mx-4 bg-white dark:bg-black-600 rounded-2xl p-4 mb-4">
                 <Text className="text-sm font-bold text-black dark:text-platinum mb-4">Monthly Revenue</Text>
                 <BarChart
-                  data={data.monthlyRevenue.map((m) => ({
+                  data={data.monthlyRevenue.map((m, i) => ({
                     value: m.revenue,
                     label: m.month,
-                    frontColor: '#d61e30',
+                    frontColor: selectedBar === i ? '#b01525' : '#d61e30',
+                    topLabelComponent: selectedBar === i
+                      ? () => (
+                          <Text style={{ fontSize: 9, fontWeight: '700', color: '#d61e30', marginBottom: 2 }}>
+                            {formatCurrency(m.revenue)}
+                          </Text>
+                        )
+                      : undefined,
                   }))}
+                  onPress={(_item: any, index: number) =>
+                    setSelectedBar((prev) => (prev === index ? null : index))
+                  }
                   barWidth={28}
                   spacing={16}
                   roundedTop

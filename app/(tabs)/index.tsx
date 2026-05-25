@@ -9,6 +9,7 @@ import { ItemForm } from '@/components/inventory/ItemForm';
 import { CustomerForm } from '@/components/customers/CustomerForm';
 import { Card } from '@/components/ui/Card';
 import { ThemeToggle } from '@/components/ui/ThemeToggle';
+import { AppMenu } from '@/components/ui/AppMenu';
 import { Toast } from '@/components/ui/Toast';
 import { useAddBooking } from '@/hooks/useBookings';
 import { useAddItem } from '@/hooks/useInventory';
@@ -30,7 +31,7 @@ interface SuccessData {
 }
 
 export default function AddNewScreen() {
-  const { user, signOut } = useAuth();
+  const { user } = useAuth();
   const { isDark } = useTheme();
   const addBooking = useAddBooking();
   const addItem = useAddItem();
@@ -85,11 +86,9 @@ export default function AddNewScreen() {
             Welcome, {user?.name}
           </Text>
         </View>
-        <View className="flex-row items-center gap-3">
+        <View className="flex-row items-center gap-2">
           <ThemeToggle />
-          <TouchableOpacity onPress={signOut} className="px-3 py-1.5 rounded-lg bg-platinum-600 dark:bg-black-600">
-            <Text className="text-xs text-black-700 dark:text-black-900">Sign out</Text>
-          </TouchableOpacity>
+          <AppMenu />
         </View>
       </View>
 

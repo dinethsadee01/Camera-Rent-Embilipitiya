@@ -1,5 +1,6 @@
+import { useEffect, useCallback } from 'react';
 import { Tabs } from 'expo-router';
-import { View, Text, type ColorValue } from 'react-native';
+import { View, Text, BackHandler, Alert, type ColorValue } from 'react-native';
 import {
   PlusCircle,
   Package,
@@ -24,17 +25,35 @@ function TabIcon({
   size: number;
 }) {
   return (
-    <View className="items-center justify-center pt-1">
+    <View className="items-center justify-center" style={{ paddingTop: focused ? 2 : 6 }}>
       <Icon size={size} color={color as string} />
-      <Text style={{ color: color as string, fontSize: 10, marginTop: 2, fontWeight: focused ? '600' : '400' }}>
-        {label}
-      </Text>
+      {focused && (
+        <Text style={{ color: color as string, fontSize: 10, marginTop: 2, fontWeight: '600' }}>
+          {label}
+        </Text>
+      )}
     </View>
   );
 }
 
 export default function TabsLayout() {
   const { isDark } = useTheme();
+
+  useEffect(() => {
+    const handler = BackHandler.addEventListener('hardwareBackPress', () => {
+      Alert.alert(
+        'Exit App',
+        'Are you sure you want to exit?',
+        [
+          { text: 'Cancel', style: 'cancel' },
+          { text: 'Exit', style: 'destructive', onPress: () => BackHandler.exitApp() },
+        ]
+      );
+      return true;
+    });
+    return () => handler.remove();
+  }, []);
+
   const activeColor = '#d61e30';
   const inactiveColor = isDark ? '#666666' : '#999999';
   const bgColor = isDark ? '#000000' : '#ffffff';

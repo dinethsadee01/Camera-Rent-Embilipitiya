@@ -13,6 +13,7 @@ import { Toast } from '@/components/ui/Toast';
 import { confirmAction } from '@/components/ui/ConfirmDialog';
 import { useBookings, useUpdateBooking, useUpdateBookingFull, useMarkBookingPaid, useAutoAdvanceBookings } from '@/hooks/useBookings';
 import { CalendarDays, X, SlidersHorizontal } from 'lucide-react-native';
+import { AppMenu } from '@/components/ui/AppMenu';
 import { useTheme } from '@/hooks/useTheme';
 import { formatDate, toISODateString } from '@/lib/utils';
 import type { BookingWithRelations, BookingStatus } from '@/lib/types';
@@ -158,7 +159,10 @@ export default function BookingsScreen() {
             {bookings?.length ?? 0} total
           </Text>
         </View>
-        <ThemeToggle />
+        <View className="flex-row items-center gap-2">
+          <ThemeToggle />
+          <AppMenu />
+        </View>
       </View>
 
       {/* Search + date filter toggle */}
@@ -214,10 +218,7 @@ export default function BookingsScreen() {
           mode="date"
           display="default"
           maximumDate={dateTo ?? undefined}
-          onChange={(_, date) => {
-            setPickerTarget(null);
-            if (date) setDateFrom(date);
-          }}
+          onChange={(_, date) => { setPickerTarget(null); if (date) setDateFrom(date); }}
         />
       )}
       {pickerTarget === 'to' && (
@@ -226,10 +227,7 @@ export default function BookingsScreen() {
           mode="date"
           display="default"
           minimumDate={dateFrom ?? undefined}
-          onChange={(_, date) => {
-            setPickerTarget(null);
-            if (date) setDateTo(date);
-          }}
+          onChange={(_, date) => { setPickerTarget(null); if (date) setDateTo(date); }}
         />
       )}
 

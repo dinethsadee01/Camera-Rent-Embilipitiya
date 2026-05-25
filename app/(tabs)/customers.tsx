@@ -9,6 +9,7 @@ import { SearchBar } from '@/components/ui/SearchBar';
 import { EmptyState } from '@/components/ui/EmptyState';
 import { SkeletonCard } from '@/components/ui/Skeleton';
 import { ThemeToggle } from '@/components/ui/ThemeToggle';
+import { AppMenu } from '@/components/ui/AppMenu';
 import { CustomerForm } from '@/components/customers/CustomerForm';
 import { CustomerListItem } from '@/components/customers/CustomerListItem';
 import { Toast } from '@/components/ui/Toast';
@@ -75,7 +76,10 @@ export default function CustomersScreen() {
             {customers?.length ?? 0} registered
           </Text>
         </View>
-        <ThemeToggle />
+        <View className="flex-row items-center gap-2">
+          <ThemeToggle />
+          <AppMenu />
+        </View>
       </View>
 
       {/* Search + Sort */}

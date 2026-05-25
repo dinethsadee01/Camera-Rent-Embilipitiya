@@ -31,6 +31,8 @@ function RootLayoutNav() {
     }
   }, [user, isLoading, segments]);
 
+  if (isLoading) return null;
+
   return (
     <Stack screenOptions={{ headerShown: false }}>
       <Stack.Screen name="(auth)" />

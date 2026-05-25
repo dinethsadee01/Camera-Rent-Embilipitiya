@@ -3,6 +3,7 @@ import { View, Text, ScrollView, TouchableOpacity, FlatList } from 'react-native
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { ChevronLeft, ChevronRight } from 'lucide-react-native';
 import { ThemeToggle } from '@/components/ui/ThemeToggle';
+import { AppMenu } from '@/components/ui/AppMenu';
 import { FilterChips } from '@/components/ui/FilterChip';
 import { SkeletonCard } from '@/components/ui/Skeleton';
 import { useItems } from '@/hooks/useInventory';
@@ -138,7 +139,10 @@ export default function AvailabilityScreen() {
             <Text className="text-xl font-bold text-black dark:text-platinum">Availability</Text>
             <Text className="text-xs text-black-800 dark:text-black-800">Check item bookings by date</Text>
           </View>
-          <ThemeToggle />
+          <View className="flex-row items-center gap-2">
+            <ThemeToggle />
+            <AppMenu />
+          </View>
         </View>
 
         {/* Item filter */}
