@@ -11,6 +11,7 @@ import {
   Image,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import { Fingerprint } from 'lucide-react-native';
 import { useAuth } from '@/context/AuthContext';
 import {
   loginWithCredentials,
@@ -25,11 +26,13 @@ export default function LoginScreen() {
   const { setUser } = useAuth();
   const { isDark } = useTheme();
   const passwordRef = useRef<TextInput>(null);
+
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [loading, setLoading] = useState(false);
   const [bioLoading, setBioLoading] = useState(false);
   const [showBiometric, setShowBiometric] = useState(false);
+  const [showCredentials, setShowCredentials] = useState(false);
 
   useEffect(() => {
     checkBiometricResume();
@@ -37,19 +40,28 @@ export default function LoginScreen() {
 
   async function checkBiometricResume() {
     const session = await getSession();
-    if (!session) return;
-    const biometricsEnabled = await getBiometricsEnabled();
-    if (!biometricsEnabled) {
+    const bioEnabled = await getBiometricsEnabled();
+    const bioAvailable = await isBiometricsAvailable();
+
+    if (bioEnabled && bioAvailable) {
+      // Biometrics is the primary login method — show it and auto-trigger
+      setShowBiometric(true);
+      setShowCredentials(false);
+      if (session) {
+        // Auto-trigger on launch when session exists
+        triggerBiometric(session);
+      }
+      return;
+    }
+
+    if (session && !bioEnabled) {
+      // No biometrics configured — auto-login from session
       await setUser(session);
       return;
     }
-    const available = await isBiometricsAvailable();
-    if (available) {
-      setShowBiometric(true);
-      triggerBiometric(session);
-    } else {
-      await setUser(session);
-    }
+
+    // No session or biometrics not set up — show credentials
+    setShowCredentials(true);
   }
 
   async function triggerBiometric(sessionUser?: Awaited<ReturnType<typeof getSession>>) {
@@ -58,10 +70,19 @@ export default function LoginScreen() {
       const success = await authenticateWithBiometrics();
       if (success) {
         const s = sessionUser ?? (await getSession());
-        if (s) await setUser(s);
+        if (s) {
+          await setUser(s);
+        } else {
+          // No stored session — biometrics passed but no account found
+          Alert.alert(
+            'No account found',
+            'Please sign in with your email and password first.',
+          );
+          setShowCredentials(true);
+        }
       }
     } catch {
-      // user cancelled
+      // cancelled
     } finally {
       setBioLoading(false);
     }
@@ -109,73 +130,104 @@ export default function LoginScreen() {
             Sign in to continue
           </Text>
 
-          <View className="mb-4">
-            <Text className="text-xs font-medium text-black-700 dark:text-black-900 mb-1.5 uppercase tracking-wide">
-              Email
-            </Text>
-            <TextInput
-              className="bg-platinum-700 dark:bg-black-500 rounded-xl px-4 py-3 text-black dark:text-platinum text-base"
-              placeholder="Enter email"
-              placeholderTextColor="#999999"
-              value={email}
-              onChangeText={setEmail}
-              autoCapitalize="none"
-              keyboardType="email-address"
-              returnKeyType="next"
-              textContentType="emailAddress"
-              autoComplete="email"
-              importantForAutofill="yes"
-              onSubmitEditing={() => passwordRef.current?.focus()}
-            />
-          </View>
-
-          <View className="mb-6">
-            <Text className="text-xs font-medium text-black-700 dark:text-black-900 mb-1.5 uppercase tracking-wide">
-              Password
-            </Text>
-            <TextInput
-              ref={passwordRef}
-              className="bg-platinum-700 dark:bg-black-500 rounded-xl px-4 py-3 text-black dark:text-platinum text-base"
-              placeholder="Enter password"
-              placeholderTextColor="#999999"
-              value={password}
-              onChangeText={setPassword}
-              secureTextEntry
-              returnKeyType="done"
-              textContentType="password"
-              autoComplete="current-password"
-              importantForAutofill="yes"
-              onSubmitEditing={handleLogin}
-            />
-          </View>
-
-          <TouchableOpacity
-            className="bg-flag_red rounded-xl py-3.5 items-center"
-            onPress={handleLogin}
-            disabled={loading}
-            activeOpacity={0.85}
-          >
-            {loading ? (
-              <ActivityIndicator color="#ffffff" />
-            ) : (
-              <Text className="text-white font-semibold text-base">Sign In</Text>
-            )}
-          </TouchableOpacity>
-
+          {/* Biometric primary option */}
           {showBiometric && (
             <TouchableOpacity
-              className="mt-3 py-3 items-center"
+              className="border-2 border-flag_red rounded-xl py-4 items-center mb-4"
               onPress={() => triggerBiometric()}
               disabled={bioLoading}
+              activeOpacity={0.85}
             >
               {bioLoading ? (
                 <ActivityIndicator color="#d61e30" />
               ) : (
-                <Text className="text-flag_red font-medium text-sm">
-                  Use Biometrics
-                </Text>
+                <View className="flex-row items-center gap-2">
+                  <Fingerprint size={22} color="#d61e30" />
+                  <Text className="text-flag_red font-semibold text-base">
+                    Sign in with Biometrics
+                  </Text>
+                </View>
               )}
             </TouchableOpacity>
+          )}
+
+          {/* Toggle to show/hide credentials */}
+          {showBiometric && !showCredentials && (
+            <TouchableOpacity
+              className="items-center py-2 mb-1"
+              onPress={() => setShowCredentials(true)}
+            >
+              <Text className="text-xs text-black-800 dark:text-black-800">
+                Use email & password instead
+              </Text>
+            </TouchableOpacity>
+          )}
+
+          {/* OR divider */}
+          {showBiometric && showCredentials && (
+            <View className="flex-row items-center mb-4">
+              <View className="flex-1 h-px bg-platinum-600 dark:bg-black-500" />
+              <Text className="mx-3 text-xs text-black-800 dark:text-black-800">or</Text>
+              <View className="flex-1 h-px bg-platinum-600 dark:bg-black-500" />
+            </View>
+          )}
+
+          {/* Credentials form */}
+          {showCredentials && (
+            <>
+              <View className="mb-4">
+                <Text className="text-xs font-medium text-black-700 dark:text-black-900 mb-1.5 uppercase tracking-wide">
+                  Email
+                </Text>
+                <TextInput
+                  className="bg-platinum-700 dark:bg-black-500 rounded-xl px-4 py-3 text-black dark:text-platinum text-base"
+                  placeholder="Enter email"
+                  placeholderTextColor="#999999"
+                  value={email}
+                  onChangeText={setEmail}
+                  autoCapitalize="none"
+                  keyboardType="email-address"
+                  returnKeyType="next"
+                  textContentType="emailAddress"
+                  autoComplete="email"
+                  importantForAutofill="yes"
+                  onSubmitEditing={() => passwordRef.current?.focus()}
+                />
+              </View>
+
+              <View className="mb-5">
+                <Text className="text-xs font-medium text-black-700 dark:text-black-900 mb-1.5 uppercase tracking-wide">
+                  Password
+                </Text>
+                <TextInput
+                  ref={passwordRef}
+                  className="bg-platinum-700 dark:bg-black-500 rounded-xl px-4 py-3 text-black dark:text-platinum text-base"
+                  placeholder="Enter password"
+                  placeholderTextColor="#999999"
+                  value={password}
+                  onChangeText={setPassword}
+                  secureTextEntry
+                  returnKeyType="done"
+                  textContentType="password"
+                  autoComplete="current-password"
+                  importantForAutofill="yes"
+                  onSubmitEditing={handleLogin}
+                />
+              </View>
+
+              <TouchableOpacity
+                className="bg-flag_red rounded-xl py-3.5 items-center"
+                onPress={handleLogin}
+                disabled={loading}
+                activeOpacity={0.85}
+              >
+                {loading ? (
+                  <ActivityIndicator color="#ffffff" />
+                ) : (
+                  <Text className="text-white font-semibold text-base">Sign In</Text>
+                )}
+              </TouchableOpacity>
+            </>
           )}
         </View>
 
