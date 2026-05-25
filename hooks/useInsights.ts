@@ -40,9 +40,12 @@ export function useInsights() {
 
       const bookings = (allBookings.data ?? []) as BookingWithRelations[];
 
-      const revenueThisMonth = bookings
-        .filter((b) => b.created_at >= monthStart && b.created_at <= monthEnd + 'T23:59:59')
-        .reduce((s, b) => s + Number(b.total_price), 0);
+      const monthBookings = bookings
+        .filter((b) => b.created_at >= monthStart && b.created_at <= monthEnd + 'T23:59:59');
+
+      const revenueThisMonth = monthBookings.reduce((s, b) => s + Number(b.total_price), 0);
+
+      const discountsThisMonth = monthBookings.reduce((s, b) => s + Number(b.discount_amount ?? 0), 0);
 
       const revenueThisWeek = bookings
         .filter((b) => b.created_at >= weekStart)
@@ -80,6 +83,7 @@ export function useInsights() {
       return {
         revenueThisMonth,
         revenueThisWeek,
+        discountsThisMonth,
         activeBookings: activeBookings.data?.length ?? 0,
         itemsCurrentlyOut: activeBookings.data?.length ?? 0,
         upcomingReturns: (upcomingReturns.data ?? []) as BookingWithRelations[],

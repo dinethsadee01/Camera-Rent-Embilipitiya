@@ -11,7 +11,7 @@ import { formatCurrency, getRentalDays, toISODateString } from '@/lib/utils';
 import { useItems } from '@/hooks/useInventory';
 import { useTheme } from '@/hooks/useTheme';
 import { BUNDLE_SUGGESTIONS } from '@/lib/bundles';
-import type { PaymentMethod, ItemCategory, BookingWithRelations } from '@/lib/types';
+import type { PaymentMethod, ItemCategory, BookingWithRelations, DiscountType } from '@/lib/types';
 import type { NewBookingItemInput } from '@/hooks/useBookings';
 import DateTimePicker from '@react-native-community/datetimepicker';
 
@@ -35,6 +35,9 @@ interface BookingEditFormProps {
     payment_status: 'paid' | 'pending' | 'partial';
     payment_method: PaymentMethod | null;
     advance_amount: number;
+    discount_type: DiscountType | null;
+    discount_value: number | null;
+    discount_amount: number;
     notes: string | null;
   }, items: NewBookingItemInput[]) => Promise<void>;
   onCancel: () => void;
@@ -82,6 +85,10 @@ export function BookingEditForm({ booking, onSubmit, onCancel }: BookingEditForm
   const [advanceAmount, setAdvanceAmount] = useState(
     booking.advance_amount > 0 ? String(booking.advance_amount) : ''
   );
+  const [discountType, setDiscountType] = useState<DiscountType>(booking.discount_type ?? 'percentage');
+  const [discountInput, setDiscountInput] = useState(
+    booking.discount_value != null ? String(booking.discount_value) : ''
+  );
   const [notes, setNotes] = useState(booking.notes ?? '');
   const [loading, setLoading] = useState(false);
 
@@ -95,13 +102,22 @@ export function BookingEditForm({ booking, onSubmit, onCancel }: BookingEditForm
   const endStr = toISODateString(endDate);
   const days = getRentalDays(startStr, endStr);
 
-  const totalPrice = useMemo(() =>
+  const subtotal = useMemo(() =>
     lineItems.reduce((sum, li) => {
       if (li.is_free) return sum;
       return sum + li.daily_rate * li.quantity * days;
     }, 0),
     [lineItems, days]
   );
+
+  const discountAmount = useMemo(() => {
+    const val = parseFloat(discountInput) || 0;
+    if (val <= 0) return 0;
+    if (discountType === 'percentage') return Math.min(subtotal, (subtotal * val) / 100);
+    return Math.min(subtotal, val);
+  }, [discountInput, discountType, subtotal]);
+
+  const totalPrice = subtotal - discountAmount;
 
   const filteredItems = useMemo(() => {
     const alreadyAdded = new Set(lineItems.map((li) => li.item_id).filter(Boolean));
@@ -195,6 +211,7 @@ export function BookingEditForm({ booking, onSubmit, onCancel }: BookingEditForm
         daily_rate: li.daily_rate,
         is_free: li.is_free,
       }));
+      const discountVal = parseFloat(discountInput) || 0;
       await onSubmit({
         start_date: startStr,
         end_date: endStr,
@@ -202,6 +219,9 @@ export function BookingEditForm({ booking, onSubmit, onCancel }: BookingEditForm
         payment_status: paymentOption as 'paid' | 'pending' | 'partial',
         payment_method: paymentMethod,
         advance_amount: paymentOption === 'partial' ? parseFloat(advanceAmount) || 0 : 0,
+        discount_type: discountVal > 0 ? discountType : null,
+        discount_value: discountVal > 0 ? discountVal : null,
+        discount_amount: discountAmount,
         notes: notes.trim() || null,
       }, newItems);
     } finally {
@@ -345,10 +365,47 @@ export function BookingEditForm({ booking, onSubmit, onCancel }: BookingEditForm
         <Text className="ml-2 text-sm text-black-800 dark:text-black-800">Add item</Text>
       </TouchableOpacity>
 
+      {/* Subtotal + Discount + Total */}
       {lineItems.length > 0 && (
-        <View className="flex-row items-center justify-between bg-white dark:bg-black-600 rounded-xl px-4 py-3 mb-4">
-          <Text className="text-sm text-black-700 dark:text-black-900">{days} day{days !== 1 ? 's' : ''} total</Text>
-          <Text className="text-base font-bold text-flag_red">{formatCurrency(totalPrice)}</Text>
+        <View className="bg-white dark:bg-black-600 rounded-2xl px-4 pt-3 pb-1 mb-4">
+          <View className="flex-row items-center justify-between mb-3">
+            <Text className="text-sm text-black-700 dark:text-black-900">
+              {days} day{days !== 1 ? 's' : ''} subtotal
+            </Text>
+            <Text className="text-sm font-semibold text-black dark:text-platinum">{formatCurrency(subtotal)}</Text>
+          </View>
+          <View className="flex-row items-center gap-2 mb-3">
+            <View className="flex-row rounded-lg overflow-hidden border border-platinum-400 dark:border-black-500">
+              {(['percentage', 'fixed'] as DiscountType[]).map((t) => (
+                <TouchableOpacity
+                  key={t}
+                  onPress={() => setDiscountType(t)}
+                  className={`px-3 py-1.5 ${discountType === t ? 'bg-flag_red' : 'bg-transparent'}`}
+                >
+                  <Text className={`text-xs font-bold ${discountType === t ? 'text-white' : 'text-black-700 dark:text-black-900'}`}>
+                    {t === 'percentage' ? '%' : 'LKR'}
+                  </Text>
+                </TouchableOpacity>
+              ))}
+            </View>
+            <TextInput
+              className="flex-1 bg-platinum-700 dark:bg-black-500 rounded-xl px-3 py-2 text-sm text-black dark:text-platinum"
+              placeholder={discountType === 'percentage' ? 'e.g. 10' : 'e.g. 500'}
+              placeholderTextColor={isDark ? '#666666' : '#999999'}
+              value={discountInput}
+              onChangeText={setDiscountInput}
+              keyboardType="decimal-pad"
+            />
+            {discountAmount > 0 && (
+              <Text className="text-sm font-semibold text-green-600 dark:text-green-400">
+                -{formatCurrency(discountAmount)}
+              </Text>
+            )}
+          </View>
+          <View className="flex-row items-center justify-between border-t border-platinum-600 dark:border-black-500 pt-2.5 pb-1.5">
+            <Text className="text-sm font-semibold text-black dark:text-platinum">Total</Text>
+            <Text className="text-base font-bold text-flag_red">{formatCurrency(totalPrice)}</Text>
+          </View>
         </View>
       )}
 

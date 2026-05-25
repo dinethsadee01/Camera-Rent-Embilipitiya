@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { View, Text, ScrollView, TouchableOpacity } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { TrendingUp, Package, CalendarDays, Clock, RefreshCw } from 'lucide-react-native';
+import { TrendingUp, Package, CalendarDays, Clock, RefreshCw, Tag } from 'lucide-react-native';
 import { BarChart } from 'react-native-gifted-charts';
 import { ThemeToggle } from '@/components/ui/ThemeToggle';
 import { AppMenu } from '@/components/ui/AppMenu';
@@ -66,7 +66,7 @@ export default function InsightsScreen() {
                 sub="Revenue"
               />
             </View>
-            <View className="flex-row gap-3 px-4 mb-4">
+            <View className="flex-row gap-3 px-4 mb-3">
               <SummaryCard
                 icon={<CalendarDays size={18} color="#16a34a" />}
                 label="Active"
@@ -78,6 +78,14 @@ export default function InsightsScreen() {
                 label="Items Out"
                 value={String(data.itemsCurrentlyOut)}
                 sub="Currently rented"
+              />
+            </View>
+            <View className="flex-row gap-3 px-4 mb-4">
+              <SummaryCard
+                icon={<Tag size={18} color="#16a34a" />}
+                label="This Month"
+                value={formatCurrency(data.discountsThisMonth)}
+                sub="Discounts given"
               />
             </View>
 

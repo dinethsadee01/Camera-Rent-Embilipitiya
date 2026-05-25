@@ -1,5 +1,7 @@
 export type ItemCategory = 'camera' | 'lens' | 'accessory' | 'lighting' | 'drone' | 'stabilizer' | 'support' | 'other';
 
+export type DiscountType = 'percentage' | 'fixed';
+
 export type BookingStatus = 'upcoming' | 'active' | 'completed' | 'cancelled';
 
 export type PaymentStatus = 'paid' | 'pending' | 'partial';
@@ -53,6 +55,9 @@ export interface Booking {
   payment_status: PaymentStatus;
   payment_method: PaymentMethod | null;
   advance_amount: number;
+  discount_type: DiscountType | null;
+  discount_value: number | null;
+  discount_amount: number;
   notes: string | null;
   created_at: string;
   updated_at: string;
@@ -79,6 +84,7 @@ export interface InsightsSummary {
   itemsCurrentlyOut: number;
   upcomingReturns: BookingWithRelations[];
   recentBookings: BookingWithRelations[];
+  discountsThisMonth: number;
   monthlyRevenue: { month: string; revenue: number }[];
   topItems: { item: Item; count: number }[];
 }

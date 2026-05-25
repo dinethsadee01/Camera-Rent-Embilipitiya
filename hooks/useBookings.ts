@@ -2,7 +2,7 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/lib/supabase';
 import { generateBookingCode } from '@/lib/sku';
 import { today } from '@/lib/utils';
-import type { Booking, BookingWithRelations, BookingStatus, PaymentStatus, PaymentMethod } from '@/lib/types';
+import type { Booking, BookingWithRelations, BookingStatus, PaymentStatus, PaymentMethod, DiscountType } from '@/lib/types';
 
 const BOOKING_SELECT = `
   *,
@@ -112,6 +112,9 @@ export interface NewBookingInput {
   payment_status: PaymentStatus;
   payment_method: PaymentMethod | null;
   advance_amount: number;
+  discount_type: DiscountType | null;
+  discount_value: number | null;
+  discount_amount: number;
   notes: string | null;
   items: NewBookingItemInput[];
 }
@@ -168,6 +171,9 @@ export function useUpdateBookingFull() {
         payment_status: PaymentStatus;
         payment_method: PaymentMethod | null;
         advance_amount: number;
+        discount_type: DiscountType | null;
+        discount_value: number | null;
+        discount_amount: number;
         notes: string | null;
       };
       items: NewBookingItemInput[];
