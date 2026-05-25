@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef } from "react";
 import {
   View,
   Text,
@@ -9,26 +9,26 @@ import {
   Alert,
   ActivityIndicator,
   Image,
-} from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
-import { Fingerprint } from 'lucide-react-native';
-import { useAuth } from '@/context/AuthContext';
+} from "react-native";
+import { SafeAreaView } from "react-native-safe-area-context";
+import { Fingerprint } from "lucide-react-native";
+import { useAuth } from "@/context/AuthContext";
 import {
   loginWithCredentials,
   isBiometricsAvailable,
   authenticateWithBiometrics,
   getBiometricsEnabled,
   getSession,
-} from '@/lib/auth';
-import { useTheme } from '@/hooks/useTheme';
+} from "@/lib/auth";
+import { useTheme } from "@/hooks/useTheme";
 
 export default function LoginScreen() {
   const { setUser } = useAuth();
   const { isDark } = useTheme();
   const passwordRef = useRef<TextInput>(null);
 
-  const [email, setEmail] = useState('');
-  const [password, setPassword] = useState('');
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
   const [loading, setLoading] = useState(false);
   const [bioLoading, setBioLoading] = useState(false);
   const [showBiometric, setShowBiometric] = useState(false);
@@ -64,7 +64,9 @@ export default function LoginScreen() {
     setShowCredentials(true);
   }
 
-  async function triggerBiometric(sessionUser?: Awaited<ReturnType<typeof getSession>>) {
+  async function triggerBiometric(
+    sessionUser?: Awaited<ReturnType<typeof getSession>>,
+  ) {
     setBioLoading(true);
     try {
       const success = await authenticateWithBiometrics();
@@ -75,8 +77,8 @@ export default function LoginScreen() {
         } else {
           // No stored session — biometrics passed but no account found
           Alert.alert(
-            'No account found',
-            'Please sign in with your email and password first.',
+            "No account found",
+            "Please sign in with your email and password first.",
           );
           setShowCredentials(true);
         }
@@ -90,14 +92,14 @@ export default function LoginScreen() {
 
   async function handleLogin() {
     if (!email.trim() || !password) {
-      Alert.alert('Missing fields', 'Please enter your email and password.');
+      Alert.alert("Missing fields", "Please enter your email and password.");
       return;
     }
     setLoading(true);
     try {
       const user = await loginWithCredentials(email.trim(), password);
       if (!user) {
-        Alert.alert('Login failed', 'Incorrect email or password.');
+        Alert.alert("Login failed", "Incorrect email or password.");
         return;
       }
       await setUser(user);
@@ -110,16 +112,17 @@ export default function LoginScreen() {
     <SafeAreaView className="flex-1 bg-platinum-700 dark:bg-black">
       <KeyboardAvoidingView
         className="flex-1 justify-center px-6"
-        behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+        behavior={Platform.OS === "ios" ? "padding" : "height"}
       >
         {/* Logo */}
         <View className="items-center mb-10">
           <Image
-            source={isDark
-              ? require('@/assets/Logo-white.png')
-              : require('@/assets/Logo-black.png')
+            source={
+              isDark
+                ? require("@/assets/Logo-white.png")
+                : require("@/assets/Logo-black.png")
             }
-            style={{ width: 220, height: 110 }}
+            style={{ width: 320, height: 210 }}
             resizeMode="contain"
           />
         </View>
@@ -167,7 +170,9 @@ export default function LoginScreen() {
           {showBiometric && showCredentials && (
             <View className="flex-row items-center mb-4">
               <View className="flex-1 h-px bg-platinum-600 dark:bg-black-500" />
-              <Text className="mx-3 text-xs text-black-800 dark:text-black-800">or</Text>
+              <Text className="mx-3 text-xs text-black-800 dark:text-black-800">
+                or
+              </Text>
               <View className="flex-1 h-px bg-platinum-600 dark:bg-black-500" />
             </View>
           )}
@@ -224,7 +229,9 @@ export default function LoginScreen() {
                 {loading ? (
                   <ActivityIndicator color="#ffffff" />
                 ) : (
-                  <Text className="text-white font-semibold text-base">Sign In</Text>
+                  <Text className="text-white font-semibold text-base">
+                    Sign In
+                  </Text>
                 )}
               </TouchableOpacity>
             </>

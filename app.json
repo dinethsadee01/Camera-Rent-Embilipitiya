@@ -63,7 +63,7 @@
       "package": "com.camerarent.embilipitiya"
     },
     "web": {
-      "favicon": "./assets/favicon.png",
+      "favicon": "./assets/camerarentapplogo.png",
       "bundler": "metro"
     },
     "experiments": {

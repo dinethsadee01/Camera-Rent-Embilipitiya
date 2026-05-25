@@ -28,7 +28,7 @@ function TabIcon({
     <View className="items-center justify-center" style={{ paddingTop: focused ? 2 : 6 }}>
       <Icon size={size} color={color as string} />
       {focused && (
-        <Text style={{ color: color as string, fontSize: 9, marginTop: 2, fontWeight: '600' }} numberOfLines={1}>
+        <Text style={{ color: color as string, fontSize: 9, marginTop: 2, fontWeight: '600' }} numberOfLines={1} adjustsFontSizeToFit minimumFontScale={0.7}>
           {label}
         </Text>
       )}
