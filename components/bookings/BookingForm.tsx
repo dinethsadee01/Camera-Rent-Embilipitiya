@@ -496,7 +496,19 @@ export function BookingForm({ onSubmit, onCancel }: BookingFormProps) {
       />
 
       <View className="flex-row gap-3">
-        <Button variant="outline" onPress={onCancel} className="flex-1">Cancel</Button>
+        <Button variant="outline" onPress={() => {
+          setCustomerId('');
+          setCustomerName('');
+          setLineItems([]);
+          setStartDate(new Date());
+          setEndDate(new Date());
+          setPaymentOption('pending');
+          setPaymentMethod(null);
+          setAdvanceAmount('');
+          setDiscountType('percentage');
+          setDiscountInput('');
+          setNotes('');
+        }} className="flex-1">Reset</Button>
         <Button onPress={handleSubmit} loading={loading} className="flex-1">Create Booking</Button>
       </View>
 

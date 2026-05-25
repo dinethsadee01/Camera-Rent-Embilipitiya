@@ -1,25 +1,23 @@
 import { useState, useMemo } from 'react';
-import { View, Text, ScrollView, TouchableOpacity, FlatList } from 'react-native';
+import { View, Text, ScrollView, TouchableOpacity, Modal, TextInput } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { ChevronLeft, ChevronRight } from 'lucide-react-native';
+import { ChevronLeft, ChevronRight, ChevronDown, Search, X } from 'lucide-react-native';
 import { ThemeToggle } from '@/components/ui/ThemeToggle';
 import { AppMenu } from '@/components/ui/AppMenu';
-import { FilterChips } from '@/components/ui/FilterChip';
 import { SkeletonCard } from '@/components/ui/Skeleton';
 import { useItems } from '@/hooks/useInventory';
 import { useAllActiveBookings } from '@/hooks/useBookings';
-import type { ActiveBookingEntry } from '@/hooks/useBookings';
 import { useTheme } from '@/hooks/useTheme';
 import { formatCurrency } from '@/lib/utils';
 import {
   startOfMonth, endOfMonth, eachDayOfInterval,
-  getDay, format, addMonths, subMonths, isSameDay, isToday,
+  getDay, format, addMonths, subMonths, isToday,
   isBefore, startOfDay,
 } from 'date-fns';
 
 const DAY_LABELS = ['Mo', 'Tu', 'We', 'Th', 'Fr', 'Sa', 'Su'];
 
-type DayStatus = 'available' | 'partial' | 'booked' | 'past';
+type DayStatus = 'available' | 'booked' | 'today' | 'past';
 
 interface DayInfo {
   date: Date;
@@ -45,94 +43,108 @@ export default function AvailabilityScreen() {
   const [currentMonth, setCurrentMonth] = useState(new Date());
   const [selectedItem, setSelectedItem] = useState('all');
   const [selectedDate, setSelectedDate] = useState<string | null>(null);
+  const [dropdownOpen, setDropdownOpen] = useState(false);
+  const [itemSearch, setItemSearch] = useState('');
 
-  const itemFilters = useMemo(() => [
-    { key: 'all', label: 'All Items' },
-    ...(items ?? []).map((i) => ({ key: i.id, label: i.name })),
+  const allItemOptions = useMemo(() => [
+    { id: 'all', name: 'All Items' },
+    ...(items ?? []).map((i) => ({ id: i.id, name: i.name })),
   ], [items]);
+
+  const filteredItemOptions = useMemo(() => {
+    if (!itemSearch) return allItemOptions;
+    const q = itemSearch.toLowerCase();
+    return allItemOptions.filter((opt) => opt.name.toLowerCase().includes(q));
+  }, [allItemOptions, itemSearch]);
+
+  const selectedItemLabel = useMemo(() => {
+    if (selectedItem === 'all') return 'All Items';
+    return items?.find((i) => i.id === selectedItem)?.name ?? 'All Items';
+  }, [selectedItem, items]);
 
   const calendarDays = useMemo((): DayInfo[] => {
     const monthStart = startOfMonth(currentMonth);
     const monthEnd = endOfMonth(currentMonth);
     const days = eachDayOfInterval({ start: monthStart, end: monthEnd });
-    const today = startOfDay(new Date());
+    const todayDate = startOfDay(new Date());
 
     return days.map((date) => {
       const dateStr = format(date, 'yyyy-MM-dd');
-      const isPast = isBefore(date, today) && !isToday(date);
+      const isPast = isBefore(date, todayDate) && !isToday(date);
       if (isPast) return { date, status: 'past', dateStr };
 
       const inRangeBookings = (bookings ?? []).filter(
         (b) => b.start_date <= dateStr && b.end_date >= dateStr
       );
 
+      let hasBooking = false;
       if (selectedItem === 'all') {
         const bookedItemIds = new Set(
           inRangeBookings.flatMap((b) =>
             b.booking_items.map((bi) => bi.item_id).filter(Boolean)
           )
         );
-        const totalItems = items?.length ?? 0;
-        if (bookedItemIds.size === 0) return { date, status: 'available', dateStr };
-        if (bookedItemIds.size >= totalItems) return { date, status: 'booked', dateStr };
-        return { date, status: 'partial', dateStr };
+        hasBooking = bookedItemIds.size > 0;
       } else {
         const item = items?.find((i) => i.id === selectedItem);
-        if (!item) return { date, status: 'available', dateStr };
-        const bookedQty = inRangeBookings.reduce((s, b) => {
-          const bi = b.booking_items.find((x) => x.item_id === selectedItem);
-          return s + (bi?.quantity ?? 0);
-        }, 0);
-        if (bookedQty === 0) return { date, status: 'available', dateStr };
-        if (bookedQty >= item.quantity) return { date, status: 'booked', dateStr };
-        return { date, status: 'partial', dateStr };
+        if (item) {
+          const bookedQty = inRangeBookings.reduce((s, b) => {
+            const bi = b.booking_items.find((x) => x.item_id === selectedItem);
+            return s + (bi?.quantity ?? 0);
+          }, 0);
+          hasBooking = bookedQty > 0;
+        }
       }
+
+      if (isToday(date)) return { date, status: 'today', dateStr };
+      return { date, status: hasBooking ? 'booked' : 'available', dateStr };
     });
   }, [currentMonth, bookings, items, selectedItem]);
 
   const dayItemAvailability = useMemo((): ItemAvailability[] => {
     if (!selectedDate || !items) return [];
-    return items.map((item) => {
-      const bookedQty = (bookings ?? [])
-        .filter((b) => b.start_date <= selectedDate && b.end_date >= selectedDate)
-        .reduce((s, b) => {
-          const bi = b.booking_items.find((x) => x.item_id === item.id);
-          return s + (bi?.quantity ?? 0);
-        }, 0);
-      return {
-        itemId: item.id,
-        itemName: item.name,
-        sku: item.sku,
-        totalQty: item.quantity,
-        bookedQty,
-        available: bookedQty < item.quantity,
-        dailyRate: item.daily_rate,
-      };
-    });
+    return items
+      .map((item) => {
+        const bookedQty = (bookings ?? [])
+          .filter((b) => b.start_date <= selectedDate && b.end_date >= selectedDate)
+          .reduce((s, b) => {
+            const bi = b.booking_items.find((x) => x.item_id === item.id);
+            return s + (bi?.quantity ?? 0);
+          }, 0);
+        return {
+          itemId: item.id,
+          itemName: item.name,
+          sku: item.sku,
+          totalQty: item.quantity,
+          bookedQty,
+          available: bookedQty < item.quantity,
+          dailyRate: item.daily_rate,
+        };
+      })
+      .filter((ia) => ia.bookedQty > 0);
   }, [selectedDate, items, bookings]);
 
-  // First day offset (Monday = 0)
   const monthStart = startOfMonth(currentMonth);
-  const firstDayOfWeek = (getDay(monthStart) + 6) % 7; // Mon=0
+  const firstDayOfWeek = (getDay(monthStart) + 6) % 7;
   const emptyCells = Array(firstDayOfWeek).fill(null);
 
   const statusColor: Record<DayStatus, string> = {
     available: '#16a34a',
-    partial: '#d97706',
     booked: '#d61e30',
+    today: '#d97706',
     past: isDark ? '#333333' : '#e0e0e0',
   };
 
   const statusBg: Record<DayStatus, string> = {
     available: isDark ? '#14532d' : '#dcfce7',
-    partial: isDark ? '#78350f' : '#fef3c7',
     booked: isDark ? '#7f1d1d' : '#fee2e2',
+    today: isDark ? '#78350f' : '#fef3c7',
     past: isDark ? '#111111' : '#f4f4f4',
   };
 
   return (
     <SafeAreaView className="flex-1 bg-platinum-700 dark:bg-black">
-      <ScrollView showsVerticalScrollIndicator={false}>
+      <ScrollView showsVerticalScrollIndicator={false} contentContainerClassName="pb-24">
         {/* Header */}
         <View className="flex-row items-center justify-between px-4 pt-2 pb-3">
           <View>
@@ -145,9 +157,17 @@ export default function AvailabilityScreen() {
           </View>
         </View>
 
-        {/* Item filter */}
-        <View className="pl-4 mb-4">
-          <FilterChips chips={itemFilters} selected={selectedItem} onSelect={setSelectedItem} />
+        {/* Item dropdown */}
+        <View className="px-4 mb-4">
+          <TouchableOpacity
+            onPress={() => setDropdownOpen(true)}
+            className="flex-row items-center bg-white dark:bg-black-600 rounded-2xl px-4 py-3 gap-3"
+          >
+            <Text className="flex-1 text-sm font-medium text-black dark:text-platinum" numberOfLines={1}>
+              {selectedItemLabel}
+            </Text>
+            <ChevronDown size={16} color={isDark ? '#eeeeee' : '#333333'} />
+          </TouchableOpacity>
         </View>
 
         {/* Calendar */}
@@ -187,7 +207,6 @@ export default function AvailabilityScreen() {
             ))}
             {calendarDays.map((day) => {
               const isSelected = selectedDate === day.dateStr;
-              const todayHighlight = isToday(day.date);
               return (
                 <TouchableOpacity
                   key={day.dateStr}
@@ -202,15 +221,17 @@ export default function AvailabilityScreen() {
                       backgroundColor: isSelected ? statusColor[day.status] : statusBg[day.status],
                       alignItems: 'center',
                       justifyContent: 'center',
-                      borderWidth: todayHighlight && !isSelected ? 2 : 0,
-                      borderColor: '#d61e30',
                     }}
                   >
                     <Text
                       style={{
                         fontSize: 12,
-                        fontWeight: isSelected || todayHighlight ? '700' : '400',
-                        color: isSelected ? '#ffffff' : day.status === 'past' ? (isDark ? '#555555' : '#bbbbbb') : statusColor[day.status],
+                        fontWeight: isSelected || day.status === 'today' ? '700' : '400',
+                        color: isSelected
+                          ? '#ffffff'
+                          : day.status === 'past'
+                          ? isDark ? '#555555' : '#bbbbbb'
+                          : statusColor[day.status],
                       }}
                     >
                       {format(day.date, 'd')}
@@ -225,7 +246,7 @@ export default function AvailabilityScreen() {
           <View className="flex-row justify-center gap-4 mt-4">
             {[
               { color: '#16a34a', label: 'Available' },
-              { color: '#d97706', label: 'Partial' },
+              { color: '#d97706', label: 'Today' },
               { color: '#d61e30', label: 'Booked' },
             ].map((l) => (
               <View key={l.label} className="flex-row items-center">
@@ -238,27 +259,32 @@ export default function AvailabilityScreen() {
 
         {/* Day detail */}
         {selectedDate && (
-          <View className="mx-4 mt-4 mb-6">
+          <View className="mx-4 mt-4">
             <Text className="text-sm font-bold text-black dark:text-platinum mb-3">
               {format(new Date(selectedDate + 'T00:00:00'), 'EEEE, dd MMMM yyyy')}
             </Text>
             {isLoading ? (
               <SkeletonCard />
+            ) : dayItemAvailability.length === 0 ? (
+              <View className="bg-white dark:bg-black-600 rounded-2xl px-4 py-8 items-center">
+                <Text className="text-sm text-black-800 dark:text-black-800">No bookings on this day</Text>
+              </View>
             ) : (
               dayItemAvailability.map((ia) => (
-                <View key={ia.itemId} className="bg-white dark:bg-black-600 rounded-2xl px-4 py-3 mb-2 flex-row items-center justify-between">
-                  <View>
+                <View
+                  key={ia.itemId}
+                  className="bg-white dark:bg-black-600 rounded-2xl px-4 py-3 mb-2 flex-row items-center justify-between"
+                >
+                  <View className="flex-1 mr-3">
                     <Text className="text-sm font-medium text-black dark:text-platinum">{ia.itemName}</Text>
                     <Text className="text-xs text-black-800 dark:text-black-800">{ia.sku} · {formatCurrency(ia.dailyRate)}/day</Text>
                   </View>
-                  <View className="items-end">
-                    <View
-                      className={`px-2.5 py-1 rounded-full ${ia.available ? 'bg-green-100 dark:bg-green-900/30' : 'bg-flag_red-900'}`}
-                    >
-                      <Text className={`text-xs font-semibold ${ia.available ? 'text-green-700 dark:text-green-400' : 'text-flag_red'}`}>
-                        {ia.available ? `${ia.totalQty - ia.bookedQty}/${ia.totalQty} free` : 'Fully Booked'}
-                      </Text>
-                    </View>
+                  <View
+                    className={`px-2.5 py-1 rounded-full ${ia.available ? 'bg-green-100 dark:bg-green-900/30' : 'bg-flag_red-900'}`}
+                  >
+                    <Text className={`text-xs font-semibold ${ia.available ? 'text-green-700 dark:text-green-400' : 'text-flag_red'}`}>
+                      {ia.available ? `${ia.totalQty - ia.bookedQty}/${ia.totalQty} free` : 'Fully Booked'}
+                    </Text>
                   </View>
                 </View>
               ))
@@ -266,6 +292,124 @@ export default function AvailabilityScreen() {
           </View>
         )}
       </ScrollView>
+
+      {/* Item Picker Modal */}
+      <Modal
+        visible={dropdownOpen}
+        transparent
+        animationType="fade"
+        onRequestClose={() => { setDropdownOpen(false); setItemSearch(''); }}
+      >
+        <TouchableOpacity
+          style={{ flex: 1, backgroundColor: 'rgba(0,0,0,0.5)' }}
+          activeOpacity={1}
+          onPress={() => { setDropdownOpen(false); setItemSearch(''); }}
+        >
+          <TouchableOpacity
+            activeOpacity={1}
+            style={{
+              margin: 16,
+              marginTop: 100,
+              backgroundColor: isDark ? '#1a1a1a' : '#ffffff',
+              borderRadius: 20,
+              overflow: 'hidden',
+              maxHeight: '72%',
+            }}
+          >
+            {/* Modal header */}
+            <View
+              style={{
+                flexDirection: 'row',
+                alignItems: 'center',
+                paddingHorizontal: 16,
+                paddingVertical: 14,
+                borderBottomWidth: 1,
+                borderBottomColor: isDark ? '#2a2a2a' : '#eeeeee',
+              }}
+            >
+              <Text style={{ flex: 1, fontSize: 15, fontWeight: '700', color: isDark ? '#eeeeee' : '#000000' }}>
+                Select Item
+              </Text>
+              <TouchableOpacity onPress={() => { setDropdownOpen(false); setItemSearch(''); }}>
+                <X size={20} color={isDark ? '#eeeeee' : '#333333'} />
+              </TouchableOpacity>
+            </View>
+
+            {/* Search input */}
+            <View
+              style={{
+                flexDirection: 'row',
+                alignItems: 'center',
+                margin: 12,
+                backgroundColor: isDark ? '#2a2a2a' : '#f4f4f4',
+                borderRadius: 12,
+                paddingHorizontal: 12,
+              }}
+            >
+              <Search size={15} color={isDark ? '#888888' : '#999999'} />
+              <TextInput
+                value={itemSearch}
+                onChangeText={setItemSearch}
+                placeholder="Search items..."
+                placeholderTextColor={isDark ? '#888888' : '#999999'}
+                style={{
+                  flex: 1,
+                  paddingVertical: 10,
+                  paddingHorizontal: 8,
+                  fontSize: 14,
+                  color: isDark ? '#eeeeee' : '#000000',
+                }}
+                autoFocus
+              />
+              {itemSearch.length > 0 && (
+                <TouchableOpacity onPress={() => setItemSearch('')}>
+                  <X size={14} color={isDark ? '#888888' : '#999999'} />
+                </TouchableOpacity>
+              )}
+            </View>
+
+            {/* Options list */}
+            <ScrollView showsVerticalScrollIndicator={false} keyboardShouldPersistTaps="handled">
+              {filteredItemOptions.length === 0 ? (
+                <View style={{ padding: 24, alignItems: 'center' }}>
+                  <Text style={{ fontSize: 14, color: isDark ? '#888888' : '#999999' }}>No items found</Text>
+                </View>
+              ) : (
+                filteredItemOptions.map((opt) => {
+                  const isActive = selectedItem === opt.id;
+                  return (
+                    <TouchableOpacity
+                      key={opt.id}
+                      style={{
+                        paddingHorizontal: 16,
+                        paddingVertical: 14,
+                        borderBottomWidth: 1,
+                        borderBottomColor: isDark ? '#222222' : '#f0f0f0',
+                        backgroundColor: isActive ? (isDark ? '#2a1010' : '#fff0f0') : 'transparent',
+                      }}
+                      onPress={() => {
+                        setSelectedItem(opt.id);
+                        setItemSearch('');
+                        setDropdownOpen(false);
+                      }}
+                    >
+                      <Text
+                        style={{
+                          fontSize: 14,
+                          fontWeight: isActive ? '600' : '400',
+                          color: isActive ? '#d61e30' : (isDark ? '#eeeeee' : '#000000'),
+                        }}
+                      >
+                        {opt.name}
+                      </Text>
+                    </TouchableOpacity>
+                  );
+                })
+              )}
+            </ScrollView>
+          </TouchableOpacity>
+        </TouchableOpacity>
+      </Modal>
     </SafeAreaView>
   );
 }

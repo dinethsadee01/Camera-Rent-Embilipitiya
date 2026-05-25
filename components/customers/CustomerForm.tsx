@@ -113,7 +113,18 @@ export function CustomerForm({ initial, onSubmit, onCancel, submitLabel = 'Add C
       )}
 
       <View className="flex-row gap-3">
-        <Button variant="outline" onPress={onCancel} className="flex-1">Cancel</Button>
+        {initial ? (
+          <Button variant="outline" onPress={onCancel} className="flex-1">Cancel</Button>
+        ) : (
+          <Button variant="outline" onPress={() => {
+            setFullName('');
+            setPhone('');
+            setPhoneSecondary('');
+            setNic('');
+            setAddress('');
+            setPhotoUrl('');
+          }} className="flex-1">Reset</Button>
+        )}
         <Button onPress={handleSubmit} loading={loading} className="flex-1">{submitLabel}</Button>
       </View>
     </ScrollView>

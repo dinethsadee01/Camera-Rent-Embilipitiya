@@ -83,7 +83,17 @@ export function ItemForm({ initial, onSubmit, onCancel, submitLabel = 'Add Item'
       />
 
       <View className="flex-row gap-3">
-        <Button variant="outline" onPress={onCancel} className="flex-1">Cancel</Button>
+        {initial ? (
+          <Button variant="outline" onPress={onCancel} className="flex-1">Cancel</Button>
+        ) : (
+          <Button variant="outline" onPress={() => {
+            setName('');
+            setCategory('camera');
+            setDailyRate('');
+            setQuantity('1');
+            setNotes('');
+          }} className="flex-1">Reset</Button>
+        )}
         <Button onPress={handleSubmit} loading={loading} className="flex-1">{submitLabel}</Button>
       </View>
     </ScrollView>
