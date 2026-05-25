@@ -84,19 +84,21 @@ export default function InsightsScreen() {
             {/* Revenue Chart */}
             {data.monthlyRevenue.length > 0 && (
               <View className="mx-4 bg-white dark:bg-black-600 rounded-2xl p-4 mb-4">
-                <Text className="text-sm font-bold text-black dark:text-platinum mb-4">Monthly Revenue</Text>
+                <View className="flex-row items-center justify-between mb-4">
+                  <Text className="text-sm font-bold text-black dark:text-platinum">Monthly Revenue</Text>
+                  {selectedBar !== null && selectedBar < data.monthlyRevenue.length && (
+                    <View className="bg-flag_red rounded-lg px-2.5 py-1">
+                      <Text className="text-white text-xs font-bold">
+                        {data.monthlyRevenue[selectedBar].month}: {formatCurrency(data.monthlyRevenue[selectedBar].revenue)}
+                      </Text>
+                    </View>
+                  )}
+                </View>
                 <BarChart
                   data={data.monthlyRevenue.map((m, i) => ({
                     value: m.revenue,
                     label: m.month,
                     frontColor: selectedBar === i ? '#b01525' : '#d61e30',
-                    topLabelComponent: selectedBar === i
-                      ? () => (
-                          <Text style={{ fontSize: 9, fontWeight: '700', color: '#d61e30', marginBottom: 2 }}>
-                            {formatCurrency(m.revenue)}
-                          </Text>
-                        )
-                      : undefined,
                   }))}
                   onPress={(_item: any, index: number) =>
                     setSelectedBar((prev) => (prev === index ? null : index))

@@ -1,5 +1,5 @@
 import React, { createContext, useContext, useEffect, useState } from 'react';
-import { getSession, clearSession, saveSession } from '@/lib/auth';
+import { getSession, clearSession, saveSession, getBiometricsEnabled, isBiometricsAvailable } from '@/lib/auth';
 import type { AppUser } from '@/lib/types';
 
 interface AuthContextValue {
@@ -21,10 +21,20 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
-    getSession().then((u) => {
+    async function init() {
+      const u = await getSession();
+      if (u) {
+        const bioEnabled = await getBiometricsEnabled();
+        if (bioEnabled && await isBiometricsAvailable()) {
+          // Session exists but biometrics required — let login screen handle prompt
+          setIsLoading(false);
+          return;
+        }
+      }
       setUserState(u);
       setIsLoading(false);
-    });
+    }
+    init();
   }, []);
 
   async function setUser(u: AppUser) {

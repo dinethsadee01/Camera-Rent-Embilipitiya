@@ -124,6 +124,7 @@ export default function LoginScreen() {
               returnKeyType="next"
               textContentType="emailAddress"
               autoComplete="email"
+              importantForAutofill="yes"
               onSubmitEditing={() => passwordRef.current?.focus()}
             />
           </View>
@@ -143,6 +144,7 @@ export default function LoginScreen() {
               returnKeyType="done"
               textContentType="password"
               autoComplete="current-password"
+              importantForAutofill="yes"
               onSubmitEditing={handleLogin}
             />
           </View>
