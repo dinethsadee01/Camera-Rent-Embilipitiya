@@ -2,6 +2,7 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/lib/supabase';
 import { generateBookingCode } from '@/lib/sku';
 import { today } from '@/lib/utils';
+import { scheduleBookingNotifications, cancelBookingNotifications } from '@/lib/notifications';
 import type { Booking, BookingWithRelations, BookingStatus, PaymentStatus, PaymentMethod, DiscountType } from '@/lib/types';
 
 const BOOKING_SELECT = `
@@ -151,7 +152,10 @@ export function useAddBooking() {
       if (error) throw error;
       return data as BookingWithRelations;
     },
-    onSuccess: () => queryClient.invalidateQueries({ queryKey: ['bookings'] }),
+    onSuccess: (data) => {
+      queryClient.invalidateQueries({ queryKey: ['bookings'] });
+      scheduleBookingNotifications(data);
+    },
   });
 }
 
@@ -205,9 +209,14 @@ export function useUpdateBookingFull() {
       if (error) throw error;
       return data as BookingWithRelations;
     },
-    onSuccess: (_, vars) => {
+    onSuccess: (data, vars) => {
       queryClient.invalidateQueries({ queryKey: ['bookings'] });
       queryClient.invalidateQueries({ queryKey: ['bookings', vars.id] });
+      cancelBookingNotifications(data.id).then(() => {
+        if (data.status !== 'cancelled' && data.status !== 'completed') {
+          scheduleBookingNotifications(data);
+        }
+      });
     },
   });
 }
@@ -225,9 +234,12 @@ export function useUpdateBooking() {
       if (error) throw error;
       return data as BookingWithRelations;
     },
-    onSuccess: (_, vars) => {
+    onSuccess: (data, vars) => {
       queryClient.invalidateQueries({ queryKey: ['bookings'] });
       queryClient.invalidateQueries({ queryKey: ['bookings', vars.id] });
+      if (data.status === 'cancelled' || data.status === 'completed') {
+        cancelBookingNotifications(data.id);
+      }
     },
   });
 }
