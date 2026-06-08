@@ -1,7 +1,9 @@
-import { View, Text, TouchableOpacity, Share } from 'react-native';
+import { View, Text, TouchableOpacity, ActivityIndicator } from 'react-native';
+import { useState } from 'react';
 import { CalendarDays, User, Package, CheckCircle, XCircle, Clock, AlertTriangle, Share2 } from 'lucide-react-native';
 import { Badge, statusVariant, statusLabel } from '@/components/ui/Badge';
-import { formatDate, formatCurrency, today, buildBookingReceipt } from '@/lib/utils';
+import { formatDate, formatCurrency, today } from '@/lib/utils';
+import { shareBookingInvoice } from '@/lib/invoicePdf';
 import { useTheme } from '@/hooks/useTheme';
 import type { BookingWithRelations } from '@/lib/types';
 
@@ -17,11 +19,15 @@ interface BookingCardProps {
 export function BookingCard({ booking: b, onMarkPaid, onMarkPending, onCancel, onEdit, onComplete }: BookingCardProps) {
   const { isDark } = useTheme();
   const iconColor = isDark ? '#999999' : '#666666';
+  const [sharing, setSharing] = useState(false);
 
   async function handleShare() {
+    if (sharing) return;
+    setSharing(true);
     try {
-      await Share.share({ message: buildBookingReceipt(b) });
+      await shareBookingInvoice(b);
     } catch {}
+    finally { setSharing(false); }
   }
 
   const primaryItems = (b.booking_items ?? []).filter((bi) => !bi.is_free);
@@ -142,8 +148,10 @@ export function BookingCard({ booking: b, onMarkPaid, onMarkPending, onCancel, o
             <XCircle size={13} color="#d61e30" />
           </TouchableOpacity>
         )}
-        <TouchableOpacity onPress={handleShare} className="px-3 py-2 rounded-xl bg-platinum-600 dark:bg-black-500">
-          <Share2 size={13} color={iconColor} />
+        <TouchableOpacity onPress={handleShare} disabled={sharing} className="px-3 py-2 rounded-xl bg-platinum-600 dark:bg-black-500">
+          {sharing
+            ? <ActivityIndicator size={13} color={iconColor} />
+            : <Share2 size={13} color={iconColor} />}
         </TouchableOpacity>
       </View>
     </View>
