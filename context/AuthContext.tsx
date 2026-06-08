@@ -1,19 +1,20 @@
 import React, { createContext, useContext, useEffect, useState } from 'react';
-import { getSession, clearSession, saveSession, getBiometricsEnabled, isBiometricsAvailable } from '@/lib/auth';
+import { supabase } from '@/lib/supabase';
+import { getSession, clearSession, getBiometricsEnabled, isBiometricsAvailable, supabaseUserToAppUser } from '@/lib/auth';
 import type { AppUser } from '@/lib/types';
 
 interface AuthContextValue {
   user: AppUser | null;
   isLoading: boolean;
   signOut: () => Promise<void>;
-  setUser: (user: AppUser) => Promise<void>;
+  setUser: (user: AppUser) => void;
 }
 
 const AuthContext = createContext<AuthContextValue>({
   user: null,
   isLoading: true,
   signOut: async () => {},
-  setUser: async () => {},
+  setUser: () => {},
 });
 
 export function AuthProvider({ children }: { children: React.ReactNode }) {
@@ -35,10 +36,21 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       setIsLoading(false);
     }
     init();
+
+    // React to Supabase auth events: token refresh, expiry, sign-out
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
+      if (event === 'SIGNED_OUT' || !session) {
+        setUserState(null);
+      } else if ((event === 'SIGNED_IN' || event === 'TOKEN_REFRESHED') && session.user) {
+        setUserState(supabaseUserToAppUser(session.user));
+      }
+    });
+
+    return () => subscription.unsubscribe();
   }, []);
 
-  async function setUser(u: AppUser) {
-    await saveSession(u);
+  // Supabase already persists the session — this just updates in-memory state
+  function setUser(u: AppUser) {
     setUserState(u);
   }
 

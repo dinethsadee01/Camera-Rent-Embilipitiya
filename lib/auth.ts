@@ -1,34 +1,37 @@
 import * as LocalAuthentication from 'expo-local-authentication';
 import * as SecureStore from 'expo-secure-store';
-import { findUser } from '@/constants/users';
+import { supabase } from '@/lib/supabase';
+import type { User } from '@supabase/supabase-js';
 import type { AppUser } from './types';
 
-const SESSION_KEY = 'cr_session_user';
 const BIOMETRICS_ENABLED_KEY = 'cr_biometrics_enabled';
+
+export function supabaseUserToAppUser(user: User): AppUser {
+  return {
+    id: user.id,
+    name: user.user_metadata?.name ?? user.email?.split('@')[0] ?? 'User',
+    role: user.user_metadata?.role ?? 'manager',
+    email: user.email ?? '',
+  };
+}
 
 export async function loginWithCredentials(
   email: string,
   password: string
 ): Promise<AppUser | null> {
-  return findUser(email, password);
-}
-
-export async function saveSession(user: AppUser): Promise<void> {
-  await SecureStore.setItemAsync(SESSION_KEY, JSON.stringify(user));
+  const { data, error } = await supabase.auth.signInWithPassword({ email, password });
+  if (error || !data.user) return null;
+  return supabaseUserToAppUser(data.user);
 }
 
 export async function getSession(): Promise<AppUser | null> {
-  try {
-    const raw = await SecureStore.getItemAsync(SESSION_KEY);
-    if (!raw) return null;
-    return JSON.parse(raw) as AppUser;
-  } catch {
-    return null;
-  }
+  const { data: { session } } = await supabase.auth.getSession();
+  if (!session?.user) return null;
+  return supabaseUserToAppUser(session.user);
 }
 
 export async function clearSession(): Promise<void> {
-  await SecureStore.deleteItemAsync(SESSION_KEY);
+  await supabase.auth.signOut();
 }
 
 export async function getBiometricsEnabled(): Promise<boolean> {
