@@ -1,4 +1,4 @@
-import { useEffect, useCallback } from 'react';
+import { useEffect } from 'react';
 import { Tabs } from 'expo-router';
 import { View, Text, BackHandler, Alert, type ColorValue } from 'react-native';
 import {
@@ -10,6 +10,7 @@ import {
   BarChart3,
 } from 'lucide-react-native';
 import { useTheme } from '@/hooks/useTheme';
+import { useAuth } from '@/context/AuthContext';
 
 function TabIcon({
   icon: Icon,
@@ -38,6 +39,8 @@ function TabIcon({
 
 export default function TabsLayout() {
   const { isDark } = useTheme();
+  const { user } = useAuth();
+  const isOwner = user?.role === 'owner';
 
   useEffect(() => {
     const handler = BackHandler.addEventListener('hardwareBackPress', () => {
@@ -118,6 +121,7 @@ export default function TabsLayout() {
       <Tabs.Screen
         name="insights"
         options={{
+          href: isOwner ? undefined : null,
           tabBarIcon: ({ color, size, focused }) => (
             <TabIcon icon={BarChart3} label="Insights" focused={focused} color={color} size={size} />
           ),

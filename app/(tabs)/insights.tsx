@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { View, Text, ScrollView, TouchableOpacity } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { TrendingUp, Package, CalendarDays, Clock, RefreshCw, Tag } from 'lucide-react-native';
@@ -10,12 +10,22 @@ import { formatCurrency, formatDate } from '@/lib/utils';
 import { Badge, statusVariant, statusLabel } from '@/components/ui/Badge';
 import { useInsights } from '@/hooks/useInsights';
 import { useTheme } from '@/hooks/useTheme';
+import { useAuth } from '@/context/AuthContext';
+import { useRouter } from 'expo-router';
 
 export default function InsightsScreen() {
   const { data, isLoading, refetch, isFetching } = useInsights();
   const { isDark } = useTheme();
+  const { user } = useAuth();
+  const router = useRouter();
   const textColor = isDark ? '#eeeeee' : '#000000';
   const [selectedBar, setSelectedBar] = useState<number | null>(null);
+
+  useEffect(() => {
+    if (user && user.role !== 'owner') {
+      router.replace('/(tabs)');
+    }
+  }, [user]);
 
   return (
     <SafeAreaView className="flex-1 bg-platinum-700 dark:bg-black">
