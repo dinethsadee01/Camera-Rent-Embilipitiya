@@ -29,14 +29,18 @@ function buildHtml(b: BookingWithRelations, logoSrc: string): string {
   });
 
   // ── Item rows ──────────────────────────────────────────────
+  const hasSerial = primaryItems.some((bi) => bi.item?.serial_number);
   const itemRows = primaryItems.map((bi) => {
     const name = bi.item?.name ?? bi.custom_name ?? 'Item';
+    const sn = bi.item?.serial_number ?? '';
     const qty = bi.quantity;
     const rate = Number(bi.daily_rate);
     const amount = rate * qty * days;
+    const snCell = hasSerial ? `<td class="center sn">${sn || '—'}</td>` : '';
     return `
       <tr>
         <td class="bold">${name}</td>
+        ${snCell}
         <td class="center">${qty}</td>
         <td class="right">${formatCurrency(rate)}</td>
         <td class="center">${days}</td>
@@ -143,6 +147,7 @@ function buildHtml(b: BookingWithRelations, logoSrc: string): string {
   .period-item .lbl{font-size:8px;font-weight:700;color:#d61e30;text-transform:uppercase;
                      letter-spacing:1px;display:block;margin-bottom:3px}
   .period-item .val{font-size:13px;font-weight:600;color:#1a1a1a}
+  .period-item .time{font-size:11px;color:#888;margin-top:1px}
   .arrow{font-size:20px;color:#d61e30;padding:0 18px;font-weight:300}
   .days-box{text-align:right}
   .days-box .big{font-size:30px;font-weight:700;color:#d61e30;line-height:1}
@@ -163,6 +168,7 @@ function buildHtml(b: BookingWithRelations, logoSrc: string): string {
   td.center{text-align:center}
   td.right{text-align:right}
   td.bold{font-weight:600;color:#1a1a1a}
+  td.sn{font-family:monospace;font-size:10px;color:#666}
 
   /* Free items */
   .free-box{background:#f0fdf4;border:1px solid #bbf7d0;border-radius:6px;
@@ -238,11 +244,13 @@ function buildHtml(b: BookingWithRelations, logoSrc: string): string {
     <div class="period-item">
       <span class="lbl">Pickup Date</span>
       <span class="val">${formatDate(b.start_date)}</span>
+      ${b.pickup_time ? `<span class="time">${b.pickup_time}</span>` : ''}
     </div>
     <span class="arrow">→</span>
     <div class="period-item">
       <span class="lbl">Return Date</span>
       <span class="val">${formatDate(b.end_date)}</span>
+      ${b.return_time ? `<span class="time">${b.return_time}</span>` : ''}
     </div>
     <div class="days-box">
       <div class="big">${days}</div>
@@ -254,11 +262,12 @@ function buildHtml(b: BookingWithRelations, logoSrc: string): string {
   <table>
     <thead>
       <tr>
-        <th style="width:40%">Item</th>
+        <th style="width:${hasSerial ? '32' : '40'}%">Item</th>
+        ${hasSerial ? '<th style="width:14%;text-align:center">S/N</th>' : ''}
         <th style="width:9%;text-align:center">Qty</th>
-        <th style="width:19%;text-align:right">Rate / Day</th>
+        <th style="width:${hasSerial ? '17' : '19'}%;text-align:right">Rate / Day</th>
         <th style="width:9%;text-align:center">Days</th>
-        <th style="width:23%;text-align:right">Amount</th>
+        <th style="width:${hasSerial ? '19' : '23'}%;text-align:right">Amount</th>
       </tr>
     </thead>
     <tbody>${itemRows}</tbody>

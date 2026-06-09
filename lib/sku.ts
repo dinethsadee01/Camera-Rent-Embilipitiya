@@ -51,5 +51,5 @@ export function generateBookingCode(existingCodes: string[]): string {
     .map((s) => parseSuffix(s, prefix))
     .filter((n): n is number => n !== null);
   const next = findNextNumber(numbers);
-  return `${prefix}-${String(next).padStart(4, '0')}`;
+  return `${prefix}-${String(next)}`;
 }

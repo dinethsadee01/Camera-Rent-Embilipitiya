@@ -14,6 +14,7 @@ import { BUNDLE_SUGGESTIONS } from '@/lib/bundles';
 import type { PaymentMethod, ItemCategory, BookingWithRelations, DiscountType } from '@/lib/types';
 import type { NewBookingItemInput } from '@/hooks/useBookings';
 import { DatePickerModal } from '@/components/ui/DatePickerModal';
+import { TimeInput } from '@/components/ui/TimeInput';
 
 interface LineItem {
   localId: string;
@@ -38,6 +39,8 @@ interface BookingEditFormProps {
     discount_type: DiscountType | null;
     discount_value: number | null;
     discount_amount: number;
+    pickup_time: string | null;
+    return_time: string | null;
     notes: string | null;
   }, items: NewBookingItemInput[]) => Promise<void>;
   onCancel: () => void;
@@ -89,6 +92,8 @@ export function BookingEditForm({ booking, onSubmit, onCancel }: BookingEditForm
   const [discountInput, setDiscountInput] = useState(
     booking.discount_value != null ? String(booking.discount_value) : ''
   );
+  const [pickupTime, setPickupTime] = useState(booking.pickup_time ?? '');
+  const [returnTime, setReturnTime] = useState(booking.return_time ?? '');
   const [notes, setNotes] = useState(booking.notes ?? '');
   const [loading, setLoading] = useState(false);
 
@@ -222,6 +227,8 @@ export function BookingEditForm({ booking, onSubmit, onCancel }: BookingEditForm
         discount_type: discountVal > 0 ? discountType : null,
         discount_value: discountVal > 0 ? discountVal : null,
         discount_amount: discountAmount,
+        pickup_time: pickupTime.trim() || null,
+        return_time: returnTime.trim() || null,
         notes: notes.trim() || null,
       }, newItems);
     } finally {
@@ -284,6 +291,12 @@ export function BookingEditForm({ booking, onSubmit, onCancel }: BookingEditForm
         onConfirm={(date) => { setEndDate(date); setShowEndDate(false); }}
         onDismiss={() => setShowEndDate(false)}
       />
+
+      {/* Time row */}
+      <View className="flex-row gap-3 mb-4">
+        <TimeInput label="Pickup Time (opt.)" value={pickupTime} onChange={setPickupTime} className="flex-1" />
+        <TimeInput label="Return Time (opt.)" value={returnTime} onChange={setReturnTime} className="flex-1" />
+      </View>
 
       {/* Items */}
       <Text className="text-xs font-medium text-black-700 dark:text-black-900 mb-2 uppercase tracking-wide">Items</Text>

@@ -1,0 +1,6 @@
+ALTER TABLE bookings
+  ADD COLUMN IF NOT EXISTS pickup_time text DEFAULT NULL,
+  ADD COLUMN IF NOT EXISTS return_time text DEFAULT NULL;
+
+ALTER TABLE items
+  ADD COLUMN IF NOT EXISTS serial_number text DEFAULT NULL;

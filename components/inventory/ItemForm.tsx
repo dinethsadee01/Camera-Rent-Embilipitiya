@@ -28,6 +28,7 @@ export function ItemForm({ initial, onSubmit, onCancel, submitLabel = 'Add Item'
   const [category, setCategory] = useState<ItemCategory>(initial?.category ?? 'camera');
   const [dailyRate, setDailyRate] = useState(initial?.daily_rate?.toString() ?? '');
   const [quantity, setQuantity] = useState(initial?.quantity?.toString() ?? '1');
+  const [serialNumber, setSerialNumber] = useState(initial?.serial_number ?? '');
   const [notes, setNotes] = useState(initial?.notes ?? '');
   const [loading, setLoading] = useState(false);
 
@@ -40,7 +41,7 @@ export function ItemForm({ initial, onSubmit, onCancel, submitLabel = 'Add Item'
 
     setLoading(true);
     try {
-      await onSubmit({ name: name.trim(), category, daily_rate: rate, quantity: qty, notes: notes.trim() || null });
+      await onSubmit({ name: name.trim(), category, daily_rate: rate, quantity: qty, serial_number: serialNumber.trim() || null, notes: notes.trim() || null });
     } finally {
       setLoading(false);
     }
@@ -73,6 +74,14 @@ export function ItemForm({ initial, onSubmit, onCancel, submitLabel = 'Add Item'
       </View>
 
       <Input
+        label="Serial Number (optional)"
+        value={serialNumber}
+        onChangeText={setSerialNumber}
+        placeholder="e.g. SN-123456"
+        className="mb-4"
+      />
+
+      <Input
         label="Notes (optional)"
         value={notes}
         onChangeText={setNotes}
@@ -91,6 +100,7 @@ export function ItemForm({ initial, onSubmit, onCancel, submitLabel = 'Add Item'
             setCategory('camera');
             setDailyRate('');
             setQuantity('1');
+            setSerialNumber('');
             setNotes('');
           }} className="flex-1">Reset</Button>
         )}

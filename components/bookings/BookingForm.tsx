@@ -8,6 +8,7 @@ import { Input } from '@/components/ui/Input';
 import { Button } from '@/components/ui/Button';
 import { FilterChips } from '@/components/ui/FilterChip';
 import { DatePickerModal } from '@/components/ui/DatePickerModal';
+import { TimeInput } from '@/components/ui/TimeInput';
 import { formatCurrency, getRentalDays, toISODateString } from '@/lib/utils';
 import { useItems } from '@/hooks/useInventory';
 import { useCustomers } from '@/hooks/useCustomers';
@@ -62,6 +63,8 @@ export function BookingForm({ onSubmit, onCancel }: BookingFormProps) {
   const [advanceAmount, setAdvanceAmount] = useState('');
   const [discountType, setDiscountType] = useState<DiscountType>('percentage');
   const [discountInput, setDiscountInput] = useState('');
+  const [pickupTime, setPickupTime] = useState('');
+  const [returnTime, setReturnTime] = useState('');
   const [notes, setNotes] = useState('');
   const [loading, setLoading] = useState(false);
 
@@ -242,6 +245,8 @@ export function BookingForm({ onSubmit, onCancel }: BookingFormProps) {
         discount_type: discountVal > 0 ? discountType : null,
         discount_value: discountVal > 0 ? discountVal : null,
         discount_amount: discountAmount,
+        pickup_time: pickupTime.trim() || null,
+        return_time: returnTime.trim() || null,
         notes: notes.trim() || null,
         items,
       });
@@ -310,6 +315,12 @@ export function BookingForm({ onSubmit, onCancel }: BookingFormProps) {
         onConfirm={(date) => { setEndDate(date); setShowEndDate(false); }}
         onDismiss={() => setShowEndDate(false)}
       />
+
+      {/* Time row */}
+      <View className="flex-row gap-3 mb-4">
+        <TimeInput label="Pickup Time (opt.)" value={pickupTime} onChange={setPickupTime} className="flex-1" />
+        <TimeInput label="Return Time (opt.)" value={returnTime} onChange={setReturnTime} className="flex-1" />
+      </View>
 
       {/* Items section */}
       <Text className="text-xs font-medium text-black-700 dark:text-black-900 mb-2 uppercase tracking-wide">Items</Text>
@@ -497,6 +508,8 @@ export function BookingForm({ onSubmit, onCancel }: BookingFormProps) {
           setAdvanceAmount('');
           setDiscountType('percentage');
           setDiscountInput('');
+          setPickupTime('');
+          setReturnTime('');
           setNotes('');
         }} className="flex-1">Reset</Button>
         <Button onPress={handleSubmit} loading={loading} className="flex-1">Create Booking</Button>

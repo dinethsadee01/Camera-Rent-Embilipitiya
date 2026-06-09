@@ -1,6 +1,5 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/lib/supabase';
-import { generateBookingCode } from '@/lib/sku';
 import { today } from '@/lib/utils';
 import { scheduleBookingNotifications, cancelBookingNotifications } from '@/lib/notifications';
 import type { Booking, BookingWithRelations, BookingStatus, PaymentStatus, PaymentMethod, DiscountType } from '@/lib/types';
@@ -116,6 +115,8 @@ export interface NewBookingInput {
   discount_type: DiscountType | null;
   discount_value: number | null;
   discount_amount: number;
+  pickup_time: string | null;
+  return_time: string | null;
   notes: string | null;
   items: NewBookingItemInput[];
 }
@@ -126,9 +127,9 @@ export function useAddBooking() {
     mutationFn: async (input: NewBookingInput) => {
       const { items, ...bookingData } = input;
 
-      const { data: existing } = await supabase.from('bookings').select('booking_code');
-      const existingCodes = (existing ?? []).map((b: { booking_code: string }) => b.booking_code);
-      const booking_code = generateBookingCode(existingCodes);
+      const { data: codeData, error: codeError } = await supabase.rpc('next_booking_code');
+      if (codeError) throw codeError;
+      const booking_code = codeData as string;
 
       const { data: booking, error: bookingError } = await supabase
         .from('bookings')
@@ -178,6 +179,8 @@ export function useUpdateBookingFull() {
         discount_type: DiscountType | null;
         discount_value: number | null;
         discount_amount: number;
+        pickup_time: string | null;
+        return_time: string | null;
         notes: string | null;
       };
       items: NewBookingItemInput[];

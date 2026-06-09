@@ -15,6 +15,7 @@ export interface Item {
   category: ItemCategory;
   daily_rate: number;
   quantity: number;
+  serial_number: string | null;
   notes: string | null;
   created_at: string;
   updated_at: string;
@@ -58,6 +59,8 @@ export interface Booking {
   discount_type: DiscountType | null;
   discount_value: number | null;
   discount_amount: number;
+  pickup_time: string | null;
+  return_time: string | null;
   notes: string | null;
   created_at: string;
   updated_at: string;
