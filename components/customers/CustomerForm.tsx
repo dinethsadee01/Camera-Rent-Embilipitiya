@@ -22,6 +22,7 @@ export function CustomerForm({ initial, onSubmit, onCancel, submitLabel = 'Add C
   const [nic, setNic] = useState(initial?.nic ?? '');
   const [address, setAddress] = useState(initial?.address ?? '');
   const [photoUrl, setPhotoUrl] = useState(initial?.id_photo_url ?? '');
+  const [localPreview, setLocalPreview] = useState('');
   const [uploadingPhoto, setUploadingPhoto] = useState(false);
   const [loading, setLoading] = useState(false);
   const { isDark } = useTheme();
@@ -33,6 +34,7 @@ export function CustomerForm({ initial, onSubmit, onCancel, submitLabel = 'Add C
 
     if (result.canceled || !result.assets[0]) return;
     const asset = result.assets[0];
+    setLocalPreview(asset.uri);
     setUploadingPhoto(true);
     try {
       const rawExt = (asset.uri.split('.').pop() ?? 'jpg').toLowerCase();
@@ -46,7 +48,9 @@ export function CustomerForm({ initial, onSubmit, onCancel, submitLabel = 'Add C
       if (error) throw error;
       const { data: urlData } = supabase.storage.from('id-photos').getPublicUrl(data.path);
       setPhotoUrl(urlData.publicUrl);
+      setLocalPreview('');
     } catch (e: any) {
+      setLocalPreview('');
       Alert.alert('Upload failed', e?.message ?? 'Could not upload photo.');
     } finally {
       setUploadingPhoto(false);
@@ -81,10 +85,15 @@ export function CustomerForm({ initial, onSubmit, onCancel, submitLabel = 'Add C
 
       {/* ID Photo */}
       <Text className="text-xs font-medium text-black-700 dark:text-black-900 mb-2 uppercase tracking-wide">ID Photo</Text>
-      {photoUrl ? (
+      {(localPreview || photoUrl) ? (
         <View className="mb-4">
-          <Image source={{ uri: photoUrl }} className="w-full h-40 rounded-xl" resizeMode="cover" />
-          <TouchableOpacity onPress={() => setPhotoUrl('')} className="mt-2">
+          <Image source={{ uri: localPreview || photoUrl }} className="w-full h-40 rounded-xl" resizeMode="cover" />
+          {uploadingPhoto && (
+            <View className="absolute inset-0 items-center justify-center bg-black/30 rounded-xl">
+              <ActivityIndicator color="#ffffff" />
+            </View>
+          )}
+          <TouchableOpacity onPress={() => { setPhotoUrl(''); setLocalPreview(''); }} className="mt-2">
             <Text className="text-xs text-flag_red text-center">Remove photo</Text>
           </TouchableOpacity>
         </View>
@@ -124,6 +133,7 @@ export function CustomerForm({ initial, onSubmit, onCancel, submitLabel = 'Add C
             setNic('');
             setAddress('');
             setPhotoUrl('');
+            setLocalPreview('');
           }} className="flex-1">Reset</Button>
         )}
         <Button onPress={handleSubmit} loading={loading} className="flex-1">{submitLabel}</Button>

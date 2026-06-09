@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { View, Text, ScrollView, TouchableOpacity } from 'react-native';
+import { View, Text, ScrollView, TouchableOpacity, RefreshControl } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { TrendingUp, Package, CalendarDays, Clock, RefreshCw, Tag } from 'lucide-react-native';
 import { BarChart } from 'react-native-gifted-charts';
@@ -29,7 +29,11 @@ export default function InsightsScreen() {
 
   return (
     <SafeAreaView className="flex-1 bg-platinum-700 dark:bg-black">
-      <ScrollView showsVerticalScrollIndicator={false} contentContainerClassName="pb-24">
+      <ScrollView
+        showsVerticalScrollIndicator={false}
+        contentContainerClassName="pb-24"
+        refreshControl={<RefreshControl refreshing={isFetching && !isLoading} onRefresh={refetch} tintColor="#d61e30" colors={['#d61e30']} />}
+      >
         {/* Header */}
         <View className="flex-row items-center justify-between px-4 pt-2 pb-4">
           <View>

@@ -1,7 +1,7 @@
 import { useState, useMemo } from 'react';
 import {
   View, Text, FlatList, TouchableOpacity, Modal,
-  KeyboardAvoidingView, ActivityIndicator,
+  KeyboardAvoidingView, ActivityIndicator, RefreshControl,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Plus, SlidersHorizontal } from 'lucide-react-native';
@@ -40,7 +40,7 @@ const SORT_OPTIONS = [
 ];
 
 export default function InventoryScreen() {
-  const { data: items, isLoading } = useItems();
+  const { data: items, isLoading, refetch, isFetching } = useItems();
   const addItem = useAddItem();
   const { isDark } = useTheme();
 
@@ -126,6 +126,7 @@ export default function InventoryScreen() {
           data={filtered}
           keyExtractor={(item) => item.id}
           contentContainerClassName="px-4 pb-24"
+          refreshControl={<RefreshControl refreshing={isFetching && !isLoading} onRefresh={refetch} tintColor="#d61e30" colors={['#d61e30']} />}
           renderItem={({ item }) => <InventoryListItem item={item} />}
           ListEmptyComponent={
             <EmptyState

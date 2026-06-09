@@ -239,7 +239,7 @@ export default function LoginScreen() {
         </View>
 
         <Text className="text-center text-xs text-black-800 dark:text-black-800 mt-6">
-          Camera Rent Embilipitiya
+          App by LegacyApps
         </Text>
       </KeyboardAvoidingView>
     </SafeAreaView>

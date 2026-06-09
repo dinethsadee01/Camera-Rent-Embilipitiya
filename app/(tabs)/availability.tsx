@@ -1,5 +1,5 @@
 import { useState, useMemo } from 'react';
-import { View, Text, ScrollView, TouchableOpacity, Modal, TextInput } from 'react-native';
+import { View, Text, ScrollView, TouchableOpacity, Modal, TextInput, RefreshControl } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { ChevronLeft, ChevronRight, ChevronDown, Search, X } from 'lucide-react-native';
 import { ThemeToggle } from '@/components/ui/ThemeToggle';
@@ -36,8 +36,13 @@ interface ItemAvailability {
 }
 
 export default function AvailabilityScreen() {
-  const { data: items } = useItems();
-  const { data: bookings, isLoading } = useAllActiveBookings();
+  const { data: items, refetch: refetchItems, isFetching: fetchingItems } = useItems();
+  const { data: bookings, isLoading, refetch: refetchBookings, isFetching: fetchingBookings } = useAllActiveBookings();
+
+  function handleRefresh() {
+    refetchItems();
+    refetchBookings();
+  }
   const { isDark } = useTheme();
 
   const [currentMonth, setCurrentMonth] = useState(new Date());
@@ -144,7 +149,11 @@ export default function AvailabilityScreen() {
 
   return (
     <SafeAreaView className="flex-1 bg-platinum-700 dark:bg-black">
-      <ScrollView showsVerticalScrollIndicator={false} contentContainerClassName="pb-24">
+      <ScrollView
+        showsVerticalScrollIndicator={false}
+        contentContainerClassName="pb-24"
+        refreshControl={<RefreshControl refreshing={(fetchingItems || fetchingBookings) && !isLoading} onRefresh={handleRefresh} tintColor="#d61e30" colors={['#d61e30']} />}
+      >
         {/* Header */}
         <View className="flex-row items-center justify-between px-4 pt-2 pb-3">
           <View>

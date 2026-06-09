@@ -1,7 +1,7 @@
 import { useState, useMemo } from 'react';
 import {
   View, Text, FlatList, TouchableOpacity, Modal,
-  KeyboardAvoidingView,
+  KeyboardAvoidingView, RefreshControl,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Plus, SlidersHorizontal } from 'lucide-react-native';
@@ -25,7 +25,7 @@ const SORT_OPTIONS = [
 ];
 
 export default function CustomersScreen() {
-  const { data: customers, isLoading } = useCustomers();
+  const { data: customers, isLoading, refetch, isFetching } = useCustomers();
   const addCustomer = useAddCustomer();
   const { isDark } = useTheme();
 
@@ -105,6 +105,7 @@ export default function CustomersScreen() {
           data={filtered}
           keyExtractor={(c) => c.id}
           contentContainerClassName="px-4 pb-24"
+          refreshControl={<RefreshControl refreshing={isFetching && !isLoading} onRefresh={refetch} tintColor="#d61e30" colors={['#d61e30']} />}
           renderItem={({ item }) => <CustomerListItem customer={item} />}
           ListEmptyComponent={
             <EmptyState

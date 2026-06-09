@@ -1,4 +1,5 @@
 import { File, Paths } from 'expo-file-system';
+import * as FileSystem from 'expo-file-system/legacy';
 import * as Print from 'expo-print';
 import * as Sharing from 'expo-sharing';
 import { Image } from 'react-native';
@@ -453,16 +454,18 @@ export async function shareBookingInvoice(booking: BookingWithRelations): Promis
   const logoSrc = await getLogoBase64();
   const html = buildHtml(booking, logoSrc);
 
-  const { uri } = await Print.printToFileAsync({ html, base64: false });
+  const { uri: tempUri } = await Print.printToFileAsync({ html, base64: false });
+  const namedUri = (FileSystem.cacheDirectory ?? '') + `${booking.booking_code}.pdf`;
+  await FileSystem.moveAsync({ from: tempUri, to: namedUri });
 
   const canShare = await Sharing.isAvailableAsync();
   if (canShare) {
-    await Sharing.shareAsync(uri, {
+    await Sharing.shareAsync(namedUri, {
       mimeType: 'application/pdf',
       dialogTitle: `Invoice – ${booking.booking_code}`,
       UTI: 'com.adobe.pdf',
     });
   } else {
-    await Print.printAsync({ uri });
+    await Print.printAsync({ uri: namedUri });
   }
 }

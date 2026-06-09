@@ -1,5 +1,5 @@
 import { useState, useMemo, useEffect } from 'react';
-import { View, Text, FlatList, Modal, KeyboardAvoidingView, Platform, ScrollView, TouchableOpacity } from 'react-native';
+import { View, Text, FlatList, Modal, KeyboardAvoidingView, Platform, ScrollView, TouchableOpacity, RefreshControl } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import DateTimePicker from '@react-native-community/datetimepicker';
 import { SegmentedControl } from '@/components/ui/SegmentedControl';
@@ -27,7 +27,7 @@ const TABS = [
 ];
 
 export default function BookingsScreen() {
-  const { data: bookings, isLoading } = useBookings();
+  const { data: bookings, isLoading, refetch, isFetching } = useBookings();
   const updateBooking = useUpdateBooking();
   const updateBookingFull = useUpdateBookingFull();
   const { markPaid, markPending } = useMarkBookingPaid();
@@ -253,6 +253,7 @@ export default function BookingsScreen() {
             data={filtered}
             keyExtractor={(b) => b.id}
             contentContainerClassName="px-4 pb-24"
+            refreshControl={<RefreshControl refreshing={isFetching && !isLoading} onRefresh={refetch} tintColor="#d61e30" colors={['#d61e30']} />}
             renderItem={({ item: b }) => (
               <BookingCard
                 booking={b}
