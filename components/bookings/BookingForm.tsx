@@ -7,6 +7,7 @@ import { Search, Check, ChevronDown, CalendarDays, Plus, X, Sparkles } from 'luc
 import { Input } from '@/components/ui/Input';
 import { Button } from '@/components/ui/Button';
 import { FilterChips } from '@/components/ui/FilterChip';
+import { DatePickerModal } from '@/components/ui/DatePickerModal';
 import { formatCurrency, getRentalDays, toISODateString } from '@/lib/utils';
 import { useItems } from '@/hooks/useInventory';
 import { useCustomers } from '@/hooks/useCustomers';
@@ -14,7 +15,6 @@ import { useTheme } from '@/hooks/useTheme';
 import { BUNDLE_SUGGESTIONS } from '@/lib/bundles';
 import type { PaymentMethod, ItemCategory, DiscountType } from '@/lib/types';
 import type { NewBookingInput, NewBookingItemInput } from '@/hooks/useBookings';
-import DateTimePicker from '@react-native-community/datetimepicker';
 
 interface LineItem {
   localId: string;
@@ -295,31 +295,21 @@ export function BookingForm({ onSubmit, onCancel }: BookingFormProps) {
         </View>
       </View>
 
-      {showStartDate && (
-        <DateTimePicker
-          value={startDate}
-          mode="date"
-          display="default"
-          onValueChange={(d) => {
-            setShowStartDate(false);
-            if (d) { const date = new Date(d); if (!isNaN(date.getTime())) { setStartDate(date); if (date > endDate) setEndDate(date); } }
-          }}
-          onDismiss={() => setShowStartDate(false)}
-        />
-      )}
-      {showEndDate && (
-        <DateTimePicker
-          value={endDate}
-          mode="date"
-          minimumDate={startDate}
-          display="default"
-          onValueChange={(d) => {
-            setShowEndDate(false);
-            if (d) { const date = new Date(d); if (!isNaN(date.getTime())) setEndDate(date); }
-          }}
-          onDismiss={() => setShowEndDate(false)}
-        />
-      )}
+      <DatePickerModal
+        visible={showStartDate}
+        value={startDate}
+        title="Select Start Date"
+        onConfirm={(date) => { setStartDate(date); if (date > endDate) setEndDate(date); setShowStartDate(false); }}
+        onDismiss={() => setShowStartDate(false)}
+      />
+      <DatePickerModal
+        visible={showEndDate}
+        value={endDate}
+        minimumDate={startDate}
+        title="Select End Date"
+        onConfirm={(date) => { setEndDate(date); setShowEndDate(false); }}
+        onDismiss={() => setShowEndDate(false)}
+      />
 
       {/* Items section */}
       <Text className="text-xs font-medium text-black-700 dark:text-black-900 mb-2 uppercase tracking-wide">Items</Text>

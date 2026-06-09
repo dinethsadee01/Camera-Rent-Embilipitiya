@@ -13,7 +13,7 @@ import { useTheme } from '@/hooks/useTheme';
 import { BUNDLE_SUGGESTIONS } from '@/lib/bundles';
 import type { PaymentMethod, ItemCategory, BookingWithRelations, DiscountType } from '@/lib/types';
 import type { NewBookingItemInput } from '@/hooks/useBookings';
-import DateTimePicker from '@react-native-community/datetimepicker';
+import { DatePickerModal } from '@/components/ui/DatePickerModal';
 
 interface LineItem {
   localId: string;
@@ -269,24 +269,21 @@ export function BookingEditForm({ booking, onSubmit, onCancel }: BookingEditForm
         </View>
       </View>
 
-      {showStartDate && (
-        <DateTimePicker value={startDate} mode="date" display="default"
-          onValueChange={(d) => {
-            setShowStartDate(false);
-            if (d) { const date = new Date(d); if (!isNaN(date.getTime())) { setStartDate(date); if (date > endDate) setEndDate(date); } }
-          }}
-          onDismiss={() => setShowStartDate(false)}
-        />
-      )}
-      {showEndDate && (
-        <DateTimePicker value={endDate} mode="date" minimumDate={startDate} display="default"
-          onValueChange={(d) => {
-            setShowEndDate(false);
-            if (d) { const date = new Date(d); if (!isNaN(date.getTime())) setEndDate(date); }
-          }}
-          onDismiss={() => setShowEndDate(false)}
-        />
-      )}
+      <DatePickerModal
+        visible={showStartDate}
+        value={startDate}
+        title="Select Start Date"
+        onConfirm={(date) => { setStartDate(date); if (date > endDate) setEndDate(date); setShowStartDate(false); }}
+        onDismiss={() => setShowStartDate(false)}
+      />
+      <DatePickerModal
+        visible={showEndDate}
+        value={endDate}
+        minimumDate={startDate}
+        title="Select End Date"
+        onConfirm={(date) => { setEndDate(date); setShowEndDate(false); }}
+        onDismiss={() => setShowEndDate(false)}
+      />
 
       {/* Items */}
       <Text className="text-xs font-medium text-black-700 dark:text-black-900 mb-2 uppercase tracking-wide">Items</Text>

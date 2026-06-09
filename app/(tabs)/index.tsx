@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import {
-  View, Text, ScrollView, TouchableOpacity, KeyboardAvoidingView, Platform, Modal,
+  View, Text, TouchableOpacity, KeyboardAvoidingView, Modal,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { PlusCircle, Package, Users, CalendarDays } from 'lucide-react-native';
@@ -111,39 +111,20 @@ export default function AddNewScreen() {
         ))}
       </View>
 
-      {/* Form area */}
+      {/* Form area — each child form has its own ScrollView, no nesting needed */}
       <KeyboardAvoidingView
-        className="flex-1"
-        behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+        className="flex-1 px-4"
+        behavior="padding"
       >
-        <ScrollView
-          className="flex-1 px-4"
-          showsVerticalScrollIndicator={false}
-          keyboardShouldPersistTaps="handled"
-        >
-          {activeForm === 'booking' && (
-            <BookingForm
-              onSubmit={handleNewBooking}
-              onCancel={() => {}}
-            />
-          )}
-          {activeForm === 'item' && (
-            <View className="pb-24">
-              <ItemForm
-                onSubmit={handleNewItem}
-                onCancel={() => setActiveForm('booking')}
-              />
-            </View>
-          )}
-          {activeForm === 'customer' && (
-            <View className="pb-24">
-              <CustomerForm
-                onSubmit={handleNewCustomer}
-                onCancel={() => setActiveForm('booking')}
-              />
-            </View>
-          )}
-        </ScrollView>
+        {activeForm === 'booking' && (
+          <BookingForm onSubmit={handleNewBooking} onCancel={() => {}} />
+        )}
+        {activeForm === 'item' && (
+          <ItemForm onSubmit={handleNewItem} onCancel={() => setActiveForm('booking')} />
+        )}
+        {activeForm === 'customer' && (
+          <CustomerForm onSubmit={handleNewCustomer} onCancel={() => setActiveForm('booking')} />
+        )}
       </KeyboardAvoidingView>
 
       {/* Success Sheet */}

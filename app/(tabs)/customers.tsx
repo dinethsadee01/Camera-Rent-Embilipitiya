@@ -1,7 +1,7 @@
 import { useState, useMemo } from 'react';
 import {
   View, Text, FlatList, TouchableOpacity, Modal,
-  KeyboardAvoidingView, Platform, ScrollView,
+  KeyboardAvoidingView,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Plus, SlidersHorizontal } from 'lucide-react-native';
@@ -146,14 +146,10 @@ export default function CustomersScreen() {
 
       {/* Add Customer Modal */}
       <Modal visible={showAdd} animationType="slide" presentationStyle="pageSheet" onRequestClose={() => setShowAdd(false)}>
-        <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : 'height'} className="flex-1">
+        <KeyboardAvoidingView behavior="padding" className="flex-1">
           <View className="flex-1 bg-platinum-700 dark:bg-black px-5 pt-6">
-            <View className="flex-row items-center justify-between mb-5">
-              <Text className="text-lg font-bold text-black dark:text-platinum">New Customer</Text>
-            </View>
-            <ScrollView showsVerticalScrollIndicator={false}>
-              <CustomerForm onSubmit={handleAddCustomer} onCancel={() => setShowAdd(false)} />
-            </ScrollView>
+            <Text className="text-lg font-bold text-black dark:text-platinum mb-5">New Customer</Text>
+            <CustomerForm onSubmit={handleAddCustomer} onCancel={() => setShowAdd(false)} />
           </View>
         </KeyboardAvoidingView>
       </Modal>

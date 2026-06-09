@@ -1,6 +1,7 @@
 import { useEffect } from 'react';
 import { Tabs } from 'expo-router';
-import { View, Text, BackHandler, Alert, type ColorValue } from 'react-native';
+import { View, Text, BackHandler, type ColorValue } from 'react-native';
+import { confirmAction } from '@/components/ui/ConfirmDialog';
 import {
   PlusCircle,
   Package,
@@ -44,13 +45,11 @@ export default function TabsLayout() {
 
   useEffect(() => {
     const handler = BackHandler.addEventListener('hardwareBackPress', () => {
-      Alert.alert(
+      confirmAction(
         'Exit App',
         'Are you sure you want to exit?',
-        [
-          { text: 'Cancel', style: 'cancel' },
-          { text: 'Exit', style: 'destructive', onPress: () => BackHandler.exitApp() },
-        ]
+        'Exit',
+        () => BackHandler.exitApp(),
       );
       return true;
     });

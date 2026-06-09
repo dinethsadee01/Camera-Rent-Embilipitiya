@@ -7,7 +7,8 @@ import type { BookingWithRelations } from './types';
 
 async function getLogoBase64(): Promise<string> {
   try {
-    const [asset] = await Asset.loadAsync(require('@/assets/Logo-black.png'));
+    const asset = Asset.fromModule(require('@/assets/Logo-black.png'));
+    await asset.downloadAsync();
     if (!asset.localUri) return '';
     const base64 = await FileSystem.readAsStringAsync(asset.localUri, {
       encoding: FileSystem.EncodingType.Base64,

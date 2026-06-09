@@ -7,6 +7,7 @@ import { StatusBar } from 'expo-status-bar';
 import * as SplashScreen from 'expo-splash-screen';
 import { AuthProvider, useAuth } from '@/context/AuthContext';
 import { requestNotificationPermissions } from '@/lib/notifications';
+import { GlobalConfirmDialogProvider } from '@/components/ui/ConfirmDialog';
 
 SplashScreen.preventAutoHideAsync();
 
@@ -53,6 +54,7 @@ export default function RootLayout() {
         <AuthProvider>
           <StatusBar style="auto" />
           <RootLayoutNav />
+          <GlobalConfirmDialogProvider />
         </AuthProvider>
       </QueryClientProvider>
     </GestureHandlerRootView>

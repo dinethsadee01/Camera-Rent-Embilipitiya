@@ -1,7 +1,7 @@
 import { useState, useMemo } from 'react';
 import {
   View, Text, FlatList, TouchableOpacity, Modal,
-  KeyboardAvoidingView, Platform, ScrollView, ActivityIndicator,
+  KeyboardAvoidingView, ActivityIndicator,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Plus, SlidersHorizontal } from 'lucide-react-native';
@@ -166,14 +166,10 @@ export default function InventoryScreen() {
 
       {/* Add Item Modal */}
       <Modal visible={showAdd} animationType="slide" presentationStyle="pageSheet" onRequestClose={() => setShowAdd(false)}>
-        <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : 'height'} className="flex-1">
+        <KeyboardAvoidingView behavior="padding" className="flex-1">
           <View className="flex-1 bg-platinum-700 dark:bg-black px-5 pt-6">
-            <View className="flex-row items-center justify-between mb-5">
-              <Text className="text-lg font-bold text-black dark:text-platinum">New Item</Text>
-            </View>
-            <ScrollView showsVerticalScrollIndicator={false}>
-              <ItemForm onSubmit={handleAddItem} onCancel={() => setShowAdd(false)} />
-            </ScrollView>
+            <Text className="text-lg font-bold text-black dark:text-platinum mb-5">New Item</Text>
+            <ItemForm onSubmit={handleAddItem} onCancel={() => setShowAdd(false)} />
           </View>
         </KeyboardAvoidingView>
       </Modal>
