@@ -28,20 +28,21 @@ export function CustomerForm({ initial, onSubmit, onCancel, submitLabel = 'Add C
 
   async function pickPhoto(fromCamera: boolean) {
     const result = fromCamera
-      ? await ImagePicker.launchCameraAsync({ quality: 0.7, base64: false })
-      : await ImagePicker.launchImageLibraryAsync({ quality: 0.7, base64: false });
+      ? await ImagePicker.launchCameraAsync({ quality: 0.7 })
+      : await ImagePicker.launchImageLibraryAsync({ quality: 0.7 });
 
     if (result.canceled || !result.assets[0]) return;
     const asset = result.assets[0];
     setUploadingPhoto(true);
     try {
-      const ext = asset.uri.split('.').pop() ?? 'jpg';
+      const rawExt = (asset.uri.split('.').pop() ?? 'jpg').toLowerCase();
+      const ext = rawExt === 'jpg' ? 'jpeg' : rawExt;
       const filename = `id-${Date.now()}.${ext}`;
       const response = await fetch(asset.uri);
-      const blob = await response.blob();
+      const arrayBuffer = await response.arrayBuffer();
       const { data, error } = await supabase.storage
         .from('id-photos')
-        .upload(filename, blob, { contentType: `image/${ext}` });
+        .upload(filename, arrayBuffer, { contentType: `image/${ext}` });
       if (error) throw error;
       const { data: urlData } = supabase.storage.from('id-photos').getPublicUrl(data.path);
       setPhotoUrl(urlData.publicUrl);

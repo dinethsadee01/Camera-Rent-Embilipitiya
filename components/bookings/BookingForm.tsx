@@ -3,12 +3,12 @@ import {
   View, Text, ScrollView, TouchableOpacity, Modal,
   FlatList, Alert, TextInput,
 } from 'react-native';
-import { Search, Check, ChevronDown, CalendarDays, Plus, X, Sparkles } from 'lucide-react-native';
+import { Search, Check, ChevronDown, CalendarDays, Clock, Plus, X, Sparkles } from 'lucide-react-native';
 import { Input } from '@/components/ui/Input';
 import { Button } from '@/components/ui/Button';
 import { FilterChips } from '@/components/ui/FilterChip';
 import { DatePickerModal } from '@/components/ui/DatePickerModal';
-import { TimeInput } from '@/components/ui/TimeInput';
+import { TimePickerModal } from '@/components/ui/TimePickerModal';
 import { formatCurrency, getRentalDays, toISODateString } from '@/lib/utils';
 import { useItems } from '@/hooks/useInventory';
 import { useCustomers } from '@/hooks/useCustomers';
@@ -72,6 +72,8 @@ export function BookingForm({ onSubmit, onCancel }: BookingFormProps) {
   const [showItemPicker, setShowItemPicker] = useState(false);
   const [showStartDate, setShowStartDate] = useState(false);
   const [showEndDate, setShowEndDate] = useState(false);
+  const [showPickupTime, setShowPickupTime] = useState(false);
+  const [showReturnTime, setShowReturnTime] = useState(false);
   const [customerSearch, setCustomerSearch] = useState('');
   const [itemSearch, setItemSearch] = useState('');
   const [itemPickerCategoryFilter, setItemPickerCategoryFilter] = useState<ItemCategory | null>(null);
@@ -318,9 +320,46 @@ export function BookingForm({ onSubmit, onCancel }: BookingFormProps) {
 
       {/* Time row */}
       <View className="flex-row gap-3 mb-4">
-        <TimeInput label="Pickup Time (opt.)" value={pickupTime} onChange={setPickupTime} className="flex-1" />
-        <TimeInput label="Return Time (opt.)" value={returnTime} onChange={setReturnTime} className="flex-1" />
+        <View className="flex-1">
+          <Text className="text-xs font-medium text-black-700 dark:text-black-900 mb-1.5 uppercase tracking-wide">Pickup Time</Text>
+          <TouchableOpacity
+            onPress={() => setShowPickupTime(true)}
+            className="flex-row items-center bg-platinum-700 dark:bg-black-500 rounded-xl px-4 py-3"
+          >
+            <Clock size={15} color={iconColor} />
+            <Text className={`ml-2 text-base ${pickupTime ? 'text-black dark:text-platinum' : 'text-black-800 dark:text-black-800'}`}>
+              {pickupTime || 'Optional'}
+            </Text>
+          </TouchableOpacity>
+        </View>
+        <View className="flex-1">
+          <Text className="text-xs font-medium text-black-700 dark:text-black-900 mb-1.5 uppercase tracking-wide">Return Time</Text>
+          <TouchableOpacity
+            onPress={() => setShowReturnTime(true)}
+            className="flex-row items-center bg-platinum-700 dark:bg-black-500 rounded-xl px-4 py-3"
+          >
+            <Clock size={15} color={iconColor} />
+            <Text className={`ml-2 text-base ${returnTime ? 'text-black dark:text-platinum' : 'text-black-800 dark:text-black-800'}`}>
+              {returnTime || 'Optional'}
+            </Text>
+          </TouchableOpacity>
+        </View>
       </View>
+
+      <TimePickerModal
+        visible={showPickupTime}
+        value={pickupTime}
+        title="Pickup Time"
+        onConfirm={(t) => { setPickupTime(t); setShowPickupTime(false); }}
+        onDismiss={() => setShowPickupTime(false)}
+      />
+      <TimePickerModal
+        visible={showReturnTime}
+        value={returnTime}
+        title="Return Time"
+        onConfirm={(t) => { setReturnTime(t); setShowReturnTime(false); }}
+        onDismiss={() => setShowReturnTime(false)}
+      />
 
       {/* Items section */}
       <Text className="text-xs font-medium text-black-700 dark:text-black-900 mb-2 uppercase tracking-wide">Items</Text>
