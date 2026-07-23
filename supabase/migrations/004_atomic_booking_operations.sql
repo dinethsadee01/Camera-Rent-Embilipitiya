@@ -1,8 +1,8 @@
 -- Booking codes must never collide, even if two devices compute the same
--- MAX(existing)+1 at nearly the same instant. Without this, next_booking_code()
--- alone can only make a collision unlikely, not impossible.
-ALTER TABLE bookings
-  ADD CONSTRAINT bookings_booking_code_key UNIQUE (booking_code);
+-- MAX(existing)+1 at nearly the same instant. This is already guaranteed:
+-- 001_initial_schema.sql declared booking_code as `text unique not null`,
+-- and Postgres auto-named that inline constraint bookings_booking_code_key
+-- — the exact constraint the retry loop below catches on conflict.
 
 -- Creates a booking and its line items inside a single transaction, so a
 -- mid-way failure (e.g. the items insert erroring) can never leave an
