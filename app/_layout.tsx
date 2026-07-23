@@ -8,7 +8,7 @@ import * as SplashScreen from 'expo-splash-screen';
 import * as SystemUI from 'expo-system-ui';
 import { AuthProvider, useAuth } from '@/context/AuthContext';
 import { useTheme } from '@/hooks/useTheme';
-import { requestNotificationPermissions } from '@/lib/notifications';
+import { requestNotificationPermissions, reconcileBookingNotifications } from '@/lib/notifications';
 import { GlobalConfirmDialogProvider } from '@/components/ui/ConfirmDialog';
 import { queryClient, persistOptions, setupFocusManager } from '@/lib/queryClient';
 import { Sentry } from '@/lib/sentry';
@@ -48,7 +48,7 @@ function RootLayoutNav() {
 
 function RootLayout() {
   useEffect(() => {
-    requestNotificationPermissions();
+    requestNotificationPermissions().then(() => reconcileBookingNotifications());
     return setupFocusManager();
   }, []);
 

@@ -1,5 +1,6 @@
 import * as Notifications from 'expo-notifications';
 import { Platform } from 'react-native';
+import { supabase } from './supabase';
 import type { BookingWithRelations } from './types';
 
 Notifications.setNotificationHandler({
@@ -76,4 +77,38 @@ export async function cancelBookingNotifications(bookingId: string) {
     Notifications.cancelScheduledNotificationAsync(`booking-return-${bookingId}`),
     Notifications.cancelScheduledNotificationAsync(`booking-overdue-${bookingId}`),
   ]);
+}
+
+const SCHEDULED_ID_PATTERN = /^booking-(?:return|overdue)-(.+)$/;
+
+// Local notifications are only ever cancelled by the device that scheduled
+// them, via the cancel/edit mutations above. If a booking is cancelled from
+// a different device, or deleted directly in the Supabase dashboard, this
+// device never hears about it and the stale reminder still fires. Run this
+// on launch to reconcile: cancel any pending local notification whose
+// booking is no longer active (or no longer exists) on the server.
+export async function reconcileBookingNotifications() {
+  const scheduled = await Notifications.getAllScheduledNotificationsAsync();
+
+  const bookingIds = new Set<string>();
+  for (const n of scheduled) {
+    const match = n.identifier.match(SCHEDULED_ID_PATTERN);
+    if (match) bookingIds.add(match[1]);
+  }
+  if (bookingIds.size === 0) return;
+
+  const { data: bookings, error } = await supabase
+    .from('bookings')
+    .select('id, status')
+    .in('id', Array.from(bookingIds));
+  if (error) return; // best-effort — don't block app startup on a network hiccup
+
+  const activeIds = new Set(
+    (bookings ?? [])
+      .filter((b) => b.status !== 'cancelled' && b.status !== 'completed')
+      .map((b) => b.id)
+  );
+
+  const staleIds = Array.from(bookingIds).filter((id) => !activeIds.has(id));
+  await Promise.allSettled(staleIds.map((id) => cancelBookingNotifications(id)));
 }
