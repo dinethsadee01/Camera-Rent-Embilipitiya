@@ -4,6 +4,7 @@ import {
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { PlusCircle, Package, Users, CalendarDays } from 'lucide-react-native';
+import * as Haptics from 'expo-haptics';
 import { BookingForm } from '@/components/bookings/BookingForm';
 import { ItemForm } from '@/components/inventory/ItemForm';
 import { CustomerForm } from '@/components/customers/CustomerForm';
@@ -42,6 +43,7 @@ export default function AddNewScreen() {
 
   async function handleNewBooking(data: Parameters<typeof addBooking.mutateAsync>[0]) {
     const result = await addBooking.mutateAsync(data);
+    Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
     setActiveForm(null);
     const primaryItems = (result.booking_items ?? []).filter((bi) => !bi.is_free);
     const itemSummary = primaryItems.length === 1

@@ -9,7 +9,9 @@
       "PowerShell($env:ANDROID_HOME = \"$env:LOCALAPPDATA\\\\Android\\\\Sdk\"; $env:Path += \";$env:ANDROID_HOME\\\\platform-tools\"; adb devices)",
       "PowerShell($env:ANDROID_HOME = \"$env:LOCALAPPDATA\\\\Android\\\\Sdk\"; $env:Path += \";$env:ANDROID_HOME\\\\platform-tools\"; adb reverse tcp:8081 tcp:8081)",
       "PowerShell($env:ANDROID_HOME = \"$env:LOCALAPPDATA\\\\Android\\\\Sdk\"; $env:Path += \";$env:ANDROID_HOME\\\\platform-tools\"; adb logcat -d | Select-String -Pattern \"react|expo|error|exception|crash\" -CaseSensitive:$false | Select-Object -Last 50)",
-      "PowerShell($env:ANDROID_HOME = \"$env:LOCALAPPDATA\\\\Android\\\\Sdk\"; $env:Path += \";$env:ANDROID_HOME\\\\platform-tools\"; adb logcat -c; Start-Sleep -Seconds 1; adb shell monkey -p com.camerarent.embilipitiya -c android.intent.category.LAUNCHER 1 2>$null; Start-Sleep -Seconds 5; adb logcat -d | Select-String -Pattern \"camerarent|ReactNative|expo|FATAL|AndroidRuntime|JSException\" -CaseSensitive:$false | Select-Object -Last 60)"
+      "PowerShell($env:ANDROID_HOME = \"$env:LOCALAPPDATA\\\\Android\\\\Sdk\"; $env:Path += \";$env:ANDROID_HOME\\\\platform-tools\"; adb logcat -c; Start-Sleep -Seconds 1; adb shell monkey -p com.camerarent.embilipitiya -c android.intent.category.LAUNCHER 1 2>$null; Start-Sleep -Seconds 5; adb logcat -d | Select-String -Pattern \"camerarent|ReactNative|expo|FATAL|AndroidRuntime|JSException\" -CaseSensitive:$false | Select-Object -Last 60)",
+      "Bash(npm install *)",
+      "Bash(npx eas-cli *)"
     ]
   }
 }

@@ -1,11 +1,14 @@
 import { useState } from 'react';
-import { View, Text, ScrollView, TouchableOpacity, Image, Alert, ActivityIndicator } from 'react-native';
+import { View, Text, ScrollView, TouchableOpacity, Alert, ActivityIndicator } from 'react-native';
+import { Image } from 'expo-image';
 import * as ImagePicker from 'expo-image-picker';
 import { Camera, Image as ImageIcon } from 'lucide-react-native';
 import { Input } from '@/components/ui/Input';
 import { Button } from '@/components/ui/Button';
 import { supabase } from '@/lib/supabase';
 import { useTheme } from '@/hooks/useTheme';
+import { useSignedPhotoUrl } from '@/hooks/useSignedPhotoUrl';
+import { compressForUpload } from '@/lib/image';
 import type { Customer } from '@/lib/types';
 
 interface CustomerFormProps {
@@ -21,11 +24,16 @@ export function CustomerForm({ initial, onSubmit, onCancel, submitLabel = 'Add C
   const [phoneSecondary, setPhoneSecondary] = useState(initial?.phone_secondary ?? '');
   const [nic, setNic] = useState(initial?.nic ?? '');
   const [address, setAddress] = useState(initial?.address ?? '');
-  const [photoUrl, setPhotoUrl] = useState(initial?.id_photo_url ?? '');
+  const [photoPath, setPhotoPath] = useState(initial?.id_photo_path ?? '');
   const [localPreview, setLocalPreview] = useState('');
   const [uploadingPhoto, setUploadingPhoto] = useState(false);
   const [loading, setLoading] = useState(false);
   const { isDark } = useTheme();
+  // Only needed to display a photo that already existed before this form
+  // session opened — a freshly picked photo shows via localPreview instead,
+  // so no signed URL round trip is needed right after uploading.
+  const { data: existingSignedUrl } = useSignedPhotoUrl(localPreview ? null : photoPath || null);
+  const displayUri = localPreview || existingSignedUrl || '';
 
   async function pickPhoto(fromCamera: boolean) {
     const result = fromCamera
@@ -37,18 +45,15 @@ export function CustomerForm({ initial, onSubmit, onCancel, submitLabel = 'Add C
     setLocalPreview(asset.uri);
     setUploadingPhoto(true);
     try {
-      const rawExt = (asset.uri.split('.').pop() ?? 'jpg').toLowerCase();
-      const ext = rawExt === 'jpg' ? 'jpeg' : rawExt;
-      const filename = `id-${Date.now()}.${ext}`;
-      const response = await fetch(asset.uri);
+      const compressed = await compressForUpload(asset.uri, asset.width, asset.height);
+      const filename = `id-${Date.now()}.jpg`;
+      const response = await fetch(compressed.uri);
       const arrayBuffer = await response.arrayBuffer();
       const { data, error } = await supabase.storage
         .from('id-photos')
-        .upload(filename, arrayBuffer, { contentType: `image/${ext}` });
+        .upload(filename, arrayBuffer, { contentType: 'image/jpeg' });
       if (error) throw error;
-      const { data: urlData } = supabase.storage.from('id-photos').getPublicUrl(data.path);
-      setPhotoUrl(urlData.publicUrl);
-      setLocalPreview('');
+      setPhotoPath(data.path);
     } catch (e: any) {
       setLocalPreview('');
       Alert.alert('Upload failed', e?.message ?? 'Could not upload photo.');
@@ -68,7 +73,7 @@ export function CustomerForm({ initial, onSubmit, onCancel, submitLabel = 'Add C
         phone_secondary: phoneSecondary.trim() || null,
         nic: nic.trim() || null,
         address: address.trim() || null,
-        id_photo_url: photoUrl || null,
+        id_photo_path: photoPath || null,
       });
     } finally {
       setLoading(false);
@@ -85,15 +90,27 @@ export function CustomerForm({ initial, onSubmit, onCancel, submitLabel = 'Add C
 
       {/* ID Photo */}
       <Text className="text-xs font-medium text-black-700 dark:text-black-900 mb-2 uppercase tracking-wide">ID Photo</Text>
-      {(localPreview || photoUrl) ? (
+      {(localPreview || photoPath) ? (
         <View className="mb-4">
-          <Image source={{ uri: localPreview || photoUrl }} className="w-full h-40 rounded-xl" resizeMode="cover" />
-          {uploadingPhoto && (
+          {displayUri ? (
+            <Image
+              source={{ uri: displayUri }}
+              className="w-full h-40 rounded-xl"
+              contentFit="cover"
+              transition={150}
+              cachePolicy="disk"
+            />
+          ) : (
+            <View className="w-full h-40 rounded-xl bg-platinum-600 dark:bg-black-500 items-center justify-center">
+              <ActivityIndicator color="#d61e30" />
+            </View>
+          )}
+          {uploadingPhoto && displayUri && (
             <View className="absolute inset-0 items-center justify-center bg-black/30 rounded-xl">
               <ActivityIndicator color="#ffffff" />
             </View>
           )}
-          <TouchableOpacity onPress={() => { setPhotoUrl(''); setLocalPreview(''); }} className="mt-2">
+          <TouchableOpacity onPress={() => { setPhotoPath(''); setLocalPreview(''); }} className="mt-2">
             <Text className="text-xs text-flag_red text-center">Remove photo</Text>
           </TouchableOpacity>
         </View>
@@ -132,7 +149,7 @@ export function CustomerForm({ initial, onSubmit, onCancel, submitLabel = 'Add C
             setPhoneSecondary('');
             setNic('');
             setAddress('');
-            setPhotoUrl('');
+            setPhotoPath('');
             setLocalPreview('');
           }} className="flex-1">Reset</Button>
         )}

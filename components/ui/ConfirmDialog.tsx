@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { View, Text, TouchableOpacity, Modal } from 'react-native';
 import { AlertTriangle, Trash2 } from 'lucide-react-native';
+import * as Haptics from 'expo-haptics';
 import { useTheme } from '@/hooks/useTheme';
 
 interface DialogConfig {
@@ -49,7 +50,11 @@ export function GlobalConfirmDialogProvider() {
 
   function handleConfirm() {
     const cb = config?.onConfirm;
+    const wasDestructive = config?.destructive;
     setConfig(null);
+    Haptics.notificationAsync(
+      wasDestructive ? Haptics.NotificationFeedbackType.Warning : Haptics.NotificationFeedbackType.Success
+    );
     cb?.();
   }
 

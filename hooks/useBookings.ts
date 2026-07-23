@@ -127,30 +127,21 @@ export function useAddBooking() {
     mutationFn: async (input: NewBookingInput) => {
       const { items, ...bookingData } = input;
 
-      const { data: codeData, error: codeError } = await supabase.rpc('next_booking_code');
-      if (codeError) throw codeError;
-      const booking_code = codeData as string;
+      // Creates the booking + its line items atomically in one DB
+      // transaction (see 004_atomic_booking_operations.sql) — a mid-way
+      // failure can no longer leave an orphaned booking with no items.
+      const { data: booking, error } = await supabase.rpc('create_booking_with_items', {
+        booking_data: bookingData,
+        items_data: items,
+      });
+      if (error) throw error;
 
-      const { data: booking, error: bookingError } = await supabase
-        .from('bookings')
-        .insert({ ...bookingData, booking_code })
-        .select('id')
-        .single();
-      if (bookingError) throw bookingError;
-
-      if (items.length > 0) {
-        const { error: itemsError } = await supabase
-          .from('booking_items')
-          .insert(items.map((item) => ({ ...item, booking_id: booking.id })));
-        if (itemsError) throw itemsError;
-      }
-
-      const { data, error } = await supabase
+      const { data, error: fetchError } = await supabase
         .from('bookings')
         .select(BOOKING_SELECT)
         .eq('id', booking.id)
         .single();
-      if (error) throw error;
+      if (fetchError) throw fetchError;
       return data as BookingWithRelations;
     },
     onSuccess: (data) => {
@@ -185,31 +176,23 @@ export function useUpdateBookingFull() {
       };
       items: NewBookingItemInput[];
     }) => {
-      const { error: bookingError } = await supabase
-        .from('bookings')
-        .update(updates)
-        .eq('id', id);
-      if (bookingError) throw bookingError;
+      // Updates the booking and replaces its line items atomically in one
+      // DB transaction (see 004_atomic_booking_operations.sql) — previously
+      // this was update + delete + insert as three separate round trips,
+      // any one of which failing midway left the booking inconsistent.
+      const { error } = await supabase.rpc('update_booking_with_items', {
+        p_booking_id: id,
+        booking_data: updates,
+        items_data: items,
+      });
+      if (error) throw error;
 
-      const { error: deleteError } = await supabase
-        .from('booking_items')
-        .delete()
-        .eq('booking_id', id);
-      if (deleteError) throw deleteError;
-
-      if (items.length > 0) {
-        const { error: insertError } = await supabase
-          .from('booking_items')
-          .insert(items.map((item) => ({ ...item, booking_id: id })));
-        if (insertError) throw insertError;
-      }
-
-      const { data, error } = await supabase
+      const { data, error: fetchError } = await supabase
         .from('bookings')
         .select(BOOKING_SELECT)
         .eq('id', id)
         .single();
-      if (error) throw error;
+      if (fetchError) throw fetchError;
       return data as BookingWithRelations;
     },
     onSuccess: (data, vars) => {

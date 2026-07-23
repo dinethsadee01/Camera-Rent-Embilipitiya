@@ -1,5 +1,6 @@
 import { useState } from 'react';
-import { View, Text, TouchableOpacity, Image, LayoutAnimation, Modal, ScrollView, KeyboardAvoidingView, Platform } from 'react-native';
+import { View, Text, TouchableOpacity, LayoutAnimation, Modal, ScrollView, KeyboardAvoidingView, Platform, ActivityIndicator } from 'react-native';
+import { Image } from 'expo-image';
 import { ChevronDown, ChevronUp, Phone, CreditCard, MapPin, Pencil, Trash2, History, Image as ImageIcon } from 'lucide-react-native';
 import { useRouter } from 'expo-router';
 import { Button } from '@/components/ui/Button';
@@ -8,6 +9,7 @@ import { confirmDelete } from '@/components/ui/ConfirmDialog';
 import { Toast } from '@/components/ui/Toast';
 import { formatDate } from '@/lib/utils';
 import { useUpdateCustomer, useDeleteCustomer } from '@/hooks/useCustomers';
+import { useSignedPhotoUrl } from '@/hooks/useSignedPhotoUrl';
 import { useTheme } from '@/hooks/useTheme';
 import type { Customer } from '@/lib/types';
 
@@ -22,6 +24,9 @@ export function CustomerListItem({ customer }: CustomerListItemProps) {
   const updateCustomer = useUpdateCustomer();
   const deleteCustomer = useDeleteCustomer();
   const router = useRouter();
+  // Only resolve a signed URL once the card is actually expanded — no need
+  // to fire a network request per row while scrolling a long customer list.
+  const { data: photoUrl } = useSignedPhotoUrl(expanded ? customer.id_photo_path : null);
 
   function toggle() {
     LayoutAnimation.configureNext(LayoutAnimation.Presets.easeInEaseOut);
@@ -99,8 +104,20 @@ export function CustomerListItem({ customer }: CustomerListItemProps) {
               )}
             </View>
 
-            {customer.id_photo_url ? (
-              <Image source={{ uri: customer.id_photo_url }} className="w-full h-32 rounded-xl mb-3" resizeMode="cover" />
+            {customer.id_photo_path ? (
+              photoUrl ? (
+                <Image
+                  source={{ uri: photoUrl }}
+                  className="w-full h-32 rounded-xl mb-3"
+                  contentFit="cover"
+                  transition={150}
+                  cachePolicy="disk"
+                />
+              ) : (
+                <View className="w-full h-32 rounded-xl bg-platinum-600 dark:bg-black-500 items-center justify-center mb-3">
+                  <ActivityIndicator color="#d61e30" />
+                </View>
+              )
             ) : (
               <View className="w-full h-20 rounded-xl bg-platinum-600 dark:bg-black-500 items-center justify-center mb-3">
                 <ImageIcon size={20} color={iconColor} />

@@ -29,7 +29,8 @@ export interface Customer {
   phone_secondary: string | null;
   nic: string | null;
   address: string | null;
-  id_photo_url: string | null;
+  /** Object path inside the private `id-photos` bucket — not a usable URL on its own. Resolve with useSignedPhotoUrl(). */
+  id_photo_path: string | null;
   registered_at: string;
   updated_at: string;
 }

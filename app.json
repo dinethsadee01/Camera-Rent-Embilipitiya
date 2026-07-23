@@ -34,7 +34,9 @@
           "photosPermission": "Allow Camera Rent to access your photos for customer ID photos.",
           "cameraPermission": "Allow Camera Rent to use the camera for taking ID photos."
         }
-      ]
+      ],
+      "expo-image",
+      "@sentry/react-native/expo"
     ],
     "ios": {
       "supportsTablet": false,
@@ -74,6 +76,13 @@
     },
     "experiments": {
       "typedRoutes": true
+    },
+    "runtimeVersion": {
+      "policy": "appVersion"
+    },
+    "updates": {
+      "enabled": true,
+      "fallbackToCacheTimeout": 0
     }
   }
 }

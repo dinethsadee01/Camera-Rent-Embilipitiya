@@ -1,26 +1,29 @@
 import '../global.css';
 import { useEffect } from 'react';
 import { Stack, useRouter, useSegments } from 'expo-router';
-import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
+import { PersistQueryClientProvider } from '@tanstack/react-query-persist-client';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import { StatusBar } from 'expo-status-bar';
 import * as SplashScreen from 'expo-splash-screen';
+import * as SystemUI from 'expo-system-ui';
 import { AuthProvider, useAuth } from '@/context/AuthContext';
+import { useTheme } from '@/hooks/useTheme';
 import { requestNotificationPermissions } from '@/lib/notifications';
 import { GlobalConfirmDialogProvider } from '@/components/ui/ConfirmDialog';
+import { queryClient, persistOptions, setupFocusManager } from '@/lib/queryClient';
+import { Sentry } from '@/lib/sentry';
 
 SplashScreen.preventAutoHideAsync();
 
-const queryClient = new QueryClient({
-  defaultOptions: {
-    queries: { retry: 2, staleTime: 30 * 1000 },
-  },
-});
-
 function RootLayoutNav() {
   const { user, isLoading } = useAuth();
+  const { isDark } = useTheme();
   const segments = useSegments();
   const router = useRouter();
+
+  useEffect(() => {
+    SystemUI.setBackgroundColorAsync(isDark ? '#000000' : '#f4f4f4');
+  }, [isDark]);
 
   useEffect(() => {
     if (isLoading) return;
@@ -43,20 +46,23 @@ function RootLayoutNav() {
   );
 }
 
-export default function RootLayout() {
+function RootLayout() {
   useEffect(() => {
     requestNotificationPermissions();
+    return setupFocusManager();
   }, []);
 
   return (
     <GestureHandlerRootView style={{ flex: 1 }}>
-      <QueryClientProvider client={queryClient}>
+      <PersistQueryClientProvider client={queryClient} persistOptions={persistOptions}>
         <AuthProvider>
           <StatusBar style="auto" />
           <RootLayoutNav />
           <GlobalConfirmDialogProvider />
         </AuthProvider>
-      </QueryClientProvider>
+      </PersistQueryClientProvider>
     </GestureHandlerRootView>
   );
 }
+
+export default Sentry.wrap(RootLayout);
